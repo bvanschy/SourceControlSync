@@ -6,6 +6,7 @@ namespace SourceControlSync.Domain
 {
     public interface IChangesCalculator
     {
-        IEnumerable<ItemChange> CalculateItemChanges(IEnumerable<Commit> commits);
+        IEnumerable<ItemChange> ItemChanges { get; }
+        void CalculateItemChanges(IEnumerable<Commit> commits);
     }
 }

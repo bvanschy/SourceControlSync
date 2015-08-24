@@ -10,105 +10,131 @@ namespace SourceControlSync.Domain
 {
     public class ChangesCalculator : IChangesCalculator
     {
-        public IEnumerable<ItemChange> CalculateItemChanges(params Commit[] commits)
+        private IEnumerable<Commit> _commits;
+        private IDictionary<string, ItemChange> _items;
+
+        public IEnumerable<ItemChange> ItemChanges
         {
-            return CalculateItemChanges(commits.AsEnumerable());
+            get { return _items != null ? _items.Values.ToList() : Enumerable.Empty<ItemChange>(); }
         }
 
-        public IEnumerable<ItemChange> CalculateItemChanges(IEnumerable<Commit> commits)
+        public void CalculateItemChanges(params Commit[] commits)
         {
-            var items = new Dictionary<string, ItemChange>();
-            foreach (var commit in commits.OrderBy(c => c.Committer.Date))
-            {
-                foreach (var change in commit.Changes)
-                {
-                    Debug.WriteLine("{0} {1}", change.ChangeType.ToString(), change.Item.Path);
+            CalculateItemChanges(commits.AsEnumerable());
+        }
 
-                    if ((change.ChangeType & ItemChangeType.Add) != 0)
-                    {
-                        AddChange(items, change);
-                    }
-                    else if ((change.ChangeType & ItemChangeType.Delete) != 0)
-                    {
-                        DeleteChange(items, change);
-                    }
-                    else if ((change.ChangeType & ItemChangeType.Edit) != 0)
-                    {
-                        EditChange(items, change);
-                    }
-                    else if ((change.ChangeType & ItemChangeType.Rename) != 0)
-                    {
-                        AddChange(items, change);
-                    }
-                    else
-                    {
-                        // Ignore all other change types
-                    }
-                }
+        public void CalculateItemChanges(IEnumerable<Commit> commits)
+        {
+            _commits = commits;
+            _items = new Dictionary<string, ItemChange>();
+
+            ProcessCommits();
+        }
+
+        private void ProcessCommits()
+        {
+            var changes = _commits
+                .OrderBy(commit => commit.Committer.Date)
+                .SelectMany(commit => commit.Changes);
+            foreach (var change in changes)
+            {
+                ProcessChange(change);
             }
-
-            return items.Values.ToList();
         }
 
-        private static void EditChange(Dictionary<string, ItemChange> items, ItemChange change)
+        private void ProcessChange(ItemChange change)
         {
-            if (items.ContainsKey(change.Item.Path))
-            {
-                var existingItem = items[change.Item.Path];
-                if ((existingItem.ChangeType & ItemChangeType.Delete) != 0)
-                {
-                    throw new ApplicationException("Cannot edit a deleted item");
-                }
+            Debug.WriteLine("{0} {1}", change.ChangeType.ToString(), change.Item.Path);
 
-                var editedExistingItem = new ItemChange()
-                {
-                    ChangeType = existingItem.ChangeType,
-                    Item = change.Item,
-                    NewContent = change.NewContent
-                };
-                items[change.Item.Path] = editedExistingItem;
+            if ((change.ChangeType & ItemChangeType.Add) != 0)
+            {
+                AddChange(change);
+            }
+            else if ((change.ChangeType & ItemChangeType.Delete) != 0)
+            {
+                DeleteChange(change);
+            }
+            else if ((change.ChangeType & ItemChangeType.Edit) != 0)
+            {
+                EditChange(change);
+            }
+            else if ((change.ChangeType & ItemChangeType.Rename) != 0)
+            {
+                AddChange(change);
             }
             else
             {
-                items.Add(change.Item.Path, change);
+                // Ignore all other types
             }
         }
 
-        private static void DeleteChange(Dictionary<string, ItemChange> items, ItemChange change)
+        private void AddChange(ItemChange change)
         {
-            if (items.ContainsKey(change.Item.Path))
+            if (_items.ContainsKey(change.Item.Path))
             {
-                var existingItem = items[change.Item.Path];
-                if ((existingItem.ChangeType & (ItemChangeType.Add | ItemChangeType.Rename)) != 0)
-                {
-                    items.Remove(change.Item.Path);
-                }
-                else
-                {
-                    items[change.Item.Path] = change;
-                }
-            }
-            else
-            {
-                items.Add(change.Item.Path, change);
-            }
-        }
-
-        private static void AddChange(Dictionary<string, ItemChange> items, ItemChange change)
-        {
-            if (items.ContainsKey(change.Item.Path))
-            {
-                var existingItem = items[change.Item.Path];
+                var existingItem = _items[change.Item.Path];
                 if ((existingItem.ChangeType & ItemChangeType.Delete) == 0)
                 {
                     throw new ApplicationException("Cannot add item on an existing item");
                 }
-                items[change.Item.Path] = change;
+                _items[change.Item.Path] = change;
             }
             else
             {
-                items.Add(change.Item.Path, change);
+                _items.Add(change.Item.Path, change);
             }
+        }
+
+        private void EditChange(ItemChange change)
+        {
+            if (_items.ContainsKey(change.Item.Path))
+            {
+                _items[change.Item.Path] = EditExistingChange(change, _items[change.Item.Path]);
+            }
+            else
+            {
+                _items.Add(change.Item.Path, change);
+            }
+        }
+
+        private void DeleteChange(ItemChange change)
+        {
+            if (_items.ContainsKey(change.Item.Path))
+            {
+                if (IsItemAdded(_items[change.Item.Path]))
+                {
+                    _items.Remove(change.Item.Path);
+                }
+                else
+                {
+                    _items[change.Item.Path] = change;
+                }
+            }
+            else
+            {
+                _items.Add(change.Item.Path, change);
+            }
+        }
+
+        private static ItemChange EditExistingChange(ItemChange newChange, ItemChange existingChange)
+        {
+            if ((existingChange.ChangeType & ItemChangeType.Delete) != 0)
+            {
+                throw new ApplicationException("Cannot edit a deleted item");
+            }
+
+            var editedExistingItem = new ItemChange()
+            {
+                ChangeType = existingChange.ChangeType,
+                Item = newChange.Item,
+                NewContent = newChange.NewContent
+            };
+            return editedExistingItem;
+        }
+
+        private static bool IsItemAdded(ItemChange existingChange)
+        {
+            return (existingChange.ChangeType & (ItemChangeType.Add | ItemChangeType.Rename)) != 0;
         }
     }
 }

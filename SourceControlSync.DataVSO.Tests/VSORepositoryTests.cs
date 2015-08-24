@@ -6,6 +6,8 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Globalization;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace SourceControlSync.DataVSO.Tests
 {
@@ -13,33 +15,12 @@ namespace SourceControlSync.DataVSO.Tests
     public class VSORepositoryTests
     {
         [TestMethod]
-        public void GetAllCommits()
-        {
-            var commits = new Dictionary<string, string>()
-            {
-                { "fd29ca5fdf9e938c873b29fd1e074aea913b831b", "2015-08-16T15:57:18Z" },
-                { "b6f447775f71a092854a2555eea084bd6d19958e", "2015-08-16T05:07:59Z" },
-                { "a620293e7300c85234c5109e9cd9bb056942fbd6", "2015-08-16T04:59:10Z" },
-                { "de3e7a550c40fe75085d11e81d5770bc5b0dd33c", "2015-08-16T04:39:20Z" },
-                { "be993da1b6b79d0a9361b89fd980000ca7f03823", "2015-08-16T04:31:57Z" },
-                { "1b1859c414e800d24036b9ee547d1530431ae055", "2015-08-16T04:29:45Z" },
-                { "5597f65ce55386a771e4bf6fa190b5a26c0f5ce5", "2015-08-16T04:28:13Z" }
-            };
-            var push = CreatePushRequest(commits);
-            var repo = CreateVSORepository();
-
-            repo.DownloadChangesAsync(push).Wait();
-
-            Assert.AreEqual(10, push.Commits.Sum(c => c.Changes.Count()));
-        }
-
-        [TestMethod]
         public void DownloadCommitWithChanges()
         {
             var push = CreatePushRequest("1b1859c414e800d24036b9ee547d1530431ae055");
             var repo = CreateVSORepository();
 
-            repo.DownloadChangesAsync(push).Wait();
+            repo.DownloadChangesAsync(push, "/", CancellationToken.None).Wait();
 
             Assert.AreEqual(2, push.Commits.Single().Changes.Count());
         }
@@ -50,7 +31,7 @@ namespace SourceControlSync.DataVSO.Tests
             var push = CreatePushRequest("5597f65ce55386a771e4bf6fa190b5a26c0f5ce5");
             var repo = CreateVSORepository();
 
-            repo.DownloadChangesAsync(push).Wait();
+            repo.DownloadChangesAsync(push, "/", CancellationToken.None).Wait();
 
             var change = push.Commits.Single().Changes.Single();
             Assert.AreEqual(ItemChangeType.Add, change.ChangeType);
@@ -69,7 +50,7 @@ namespace SourceControlSync.DataVSO.Tests
             var push = CreatePushRequest("de3e7a550c40fe75085d11e81d5770bc5b0dd33c");
             var repo = CreateVSORepository();
 
-            repo.DownloadChangesAsync(push).Wait();
+            repo.DownloadChangesAsync(push, "/", CancellationToken.None).Wait();
 
             var index2Item = push.Commits.Single().Changes.Single(c => c.Item.Path == "/index2.html");
             Assert.AreEqual(ItemChangeType.Delete | ItemChangeType.SourceRename, index2Item.ChangeType);
@@ -90,7 +71,7 @@ namespace SourceControlSync.DataVSO.Tests
             var push = CreatePushRequest("a620293e7300c85234c5109e9cd9bb056942fbd6");
             var repo = CreateVSORepository();
 
-            repo.DownloadChangesAsync(push).Wait();
+            repo.DownloadChangesAsync(push, "/", CancellationToken.None).Wait();
 
             var indexItem = push.Commits.Single().Changes.Single(c => c.Item.Path == "/index.html");
             Assert.AreEqual(ItemChangeType.Delete | ItemChangeType.SourceRename, indexItem.ChangeType);
@@ -111,7 +92,7 @@ namespace SourceControlSync.DataVSO.Tests
             var push = CreatePushRequest("b6f447775f71a092854a2555eea084bd6d19958e");
             var repo = CreateVSORepository();
 
-            repo.DownloadChangesAsync(push).Wait();
+            repo.DownloadChangesAsync(push, "/", CancellationToken.None).Wait();
 
             var change = push.Commits.Single().Changes.Single();
             Assert.AreEqual(ItemChangeType.Add, change.ChangeType);
@@ -121,6 +102,58 @@ namespace SourceControlSync.DataVSO.Tests
             Assert.IsNotNull(change.NewContent);
             Assert.AreEqual(ItemContentType.Base64Encoded, change.NewContent.ContentType);
             Assert.AreEqual(1536, change.NewContent.Content.Length);
+        }
+
+        [TestMethod]
+        public void DownloadAllCommits()
+        {
+            var commits = new Dictionary<string, string>()
+            {
+                { "fd29ca5fdf9e938c873b29fd1e074aea913b831b", "2015-08-16T15:57:18Z" },
+                { "b6f447775f71a092854a2555eea084bd6d19958e", "2015-08-16T05:07:59Z" },
+                { "a620293e7300c85234c5109e9cd9bb056942fbd6", "2015-08-16T04:59:10Z" },
+                { "de3e7a550c40fe75085d11e81d5770bc5b0dd33c", "2015-08-16T04:39:20Z" },
+                { "be993da1b6b79d0a9361b89fd980000ca7f03823", "2015-08-16T04:31:57Z" },
+                { "1b1859c414e800d24036b9ee547d1530431ae055", "2015-08-16T04:29:45Z" },
+                { "5597f65ce55386a771e4bf6fa190b5a26c0f5ce5", "2015-08-16T04:28:13Z" }
+            };
+            var push = CreatePushRequest(commits);
+            var repo = CreateVSORepository();
+
+            repo.DownloadChangesAsync(push, "/", CancellationToken.None).Wait();
+
+            Assert.AreEqual(10, push.Commits.Sum(c => c.Changes.Count()));
+        }
+
+        [TestMethod]
+        public void DownloadNoChanges()
+        {
+            var push = CreatePushRequest("1b1859c414e800d24036b9ee547d1530431ae055");
+            var repo = CreateVSORepository();
+
+            repo.DownloadChangesAsync(push, "/fake/", CancellationToken.None).Wait();
+
+            Assert.AreEqual(0, push.Commits.Single().Changes.Count());
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(TaskCanceledException))]
+        public void DownloadCommitWhenCanceled()
+        {
+            var push = CreatePushRequest("1b1859c414e800d24036b9ee547d1530431ae055");
+            var repo = CreateVSORepository();
+
+            var token = new CancellationToken(true);
+            var task = repo.DownloadChangesAsync(push, "/", token);
+
+            try
+            {
+                task.Wait();
+            }
+            catch (AggregateException e)
+            {
+                throw e.InnerException;
+            }
         }
 
         private static Push CreatePushRequest(string commitId)
@@ -140,7 +173,10 @@ namespace SourceControlSync.DataVSO.Tests
                 Commits = commits.Select(c => new Commit() 
                 { 
                     CommitId = c.Key,
-                    Committer = new UserDate() { Date = DateTime.ParseExact(c.Value, "yyyy'-'MM'-'dd'T'HH':'mm':'ss'Z'", CultureInfo.InvariantCulture) }
+                    Committer = new UserDate() 
+                    { 
+                        Date = DateTime.ParseExact(c.Value, "yyyy'-'MM'-'dd'T'HH':'mm':'ss'Z'", CultureInfo.InvariantCulture) 
+                    }
                 }).ToArray(),
                 Repository = new Repository() { Id = new Guid("0ad49569-db8b-4a8a-b5cc-f7ff009949c8") }
             };
@@ -149,10 +185,19 @@ namespace SourceControlSync.DataVSO.Tests
 
         private static VSORepository CreateVSORepository()
         {
-            var repo = new VSORepository(
-                ConfigurationManager.AppSettings["VSO-BaseUrl"], 
-                ConfigurationManager.AppSettings["VSO-UserName"], 
-                ConfigurationManager.AppSettings["VSO-AccessToken"]);
+            var connectionStringBuilder = new VSOConnectionStringBuilder()
+            {
+                BaseUrl = new Uri(ConfigurationManager.AppSettings["VSO-BaseUrl"]),
+                Credentials = new Credentials()
+                {
+                    UserName = ConfigurationManager.AppSettings["VSO-UserName"],
+                    AccessToken = ConfigurationManager.AppSettings["VSO-AccessToken"]
+                }
+            };
+            var repo = new VSORepository()
+            {
+                ConnectionString = connectionStringBuilder.ConnectionString
+            };
             return repo;
         }
     }

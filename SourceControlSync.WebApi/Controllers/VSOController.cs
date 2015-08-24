@@ -2,10 +2,11 @@
 using SourceControlSync.DataAWS;
 using SourceControlSync.DataVSO;
 using SourceControlSync.Domain;
+using SourceControlSync.Domain.Models;
+using SourceControlSync.WebApi.Models;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Web.Http;
 
@@ -13,82 +14,88 @@ namespace SourceControlSync.WebApi.Controllers
 {
     public class VSOController : ApiController
     {
-        public const string HEADER_VSO_BASE_URL = "VSO-BaseUrl";
-        public const string HEADER_VSO_USER_NAME = "VSO-UserName";
-        public const string HEADER_VSO_ACCESS_TOKEN = "VSO-AccessToken";
-        public const string HEADER_VSO_ROOT = "VSO-Root";
-        public const string HEADER_AWS_ACCESS_KEY_ID = "AWS-AccessKeyId";
-        public const string HEADER_AWS_SECRET_ACCESS_KEY = "AWS-SecretAccessKey";
-        public const string HEADER_AWS_REGION_SYSTEM_NAME = "AWS-RegionSystemName";
-        public const string HEADER_AWS_BUCKET_NAME = "AWS-BucketName";
+        public const string HEADER_ROOT = "Sync-Root";
+        public const string HEADER_SOURCE_CONNECTIONSTRING = "Sync-SourceConnectionString";
+        public const string HEADER_DESTINATION_CONNECTIONSTRING = "Sync-DestConnectionString";
+
+        private VSOCodePushed _pushEvent;
+        private CancellationToken _token;
+        private HeaderParameters _parameters;
 
         private ISourceRepository _sourceRepository;
         private IChangesCalculator _changesCalculator;
         private IDestinationRepository _destinationRepository;
 
-        public VSOController()
+        public ISourceRepository SourceRepository 
         {
+            get 
+            { 
+                _sourceRepository = _sourceRepository ?? new VSORepository();
+                return _sourceRepository;
+            }
+            set { _sourceRepository = value; }
+        }
+        public IChangesCalculator ChangesCalculator 
+        {
+            get 
+            {
+                _changesCalculator = _changesCalculator ?? new ChangesCalculator();
+                return _changesCalculator; 
+            }
+            set { _changesCalculator = value; }
+        }
+        public IDestinationRepository DestinationRepository 
+        {
+            get 
+            { 
+                _destinationRepository = _destinationRepository ?? new AWSS3Repository(new AWSS3CommandFactory());
+                return _destinationRepository;
+            }
+            set { _destinationRepository = value; }
         }
 
-        public VSOController(ISourceRepository vsoRepository, IChangesCalculator changesCalculator, IDestinationRepository destRepository)
+        public async Task<IHttpActionResult> PostAsync(VSOCodePushed data, CancellationToken token)
         {
-            _sourceRepository = vsoRepository;
-            _changesCalculator = changesCalculator;
-            _destinationRepository = destRepository;
+            _pushEvent = data;
+            _token = token;
+            _parameters = new HeaderParameters(Request.Headers,
+                HEADER_ROOT,
+                HEADER_SOURCE_CONNECTIONSTRING,
+                HEADER_DESTINATION_CONNECTIONSTRING);
+
+            if (!_parameters.AnyMissing)
+            {
+                LogRequest();
+                var result = await HandleSynchronizePushAsync();
+                return result;
+            }
+            else
+            {
+                return BadRequest("Missing headers");
+            }
         }
 
-        public async Task<IHttpActionResult> Post(VSOCodePushed data)
+        private void LogRequest()
         {
-            var vsoBaseUrl = GetHeaderValue(HEADER_VSO_BASE_URL);
-            var vsoUserName = GetHeaderValue(HEADER_VSO_USER_NAME);
-            var vsoAccessToken = GetHeaderValue(HEADER_VSO_ACCESS_TOKEN);
-            var vsoRoot = GetHeaderValue(HEADER_VSO_ROOT);
+            string content = JsonConvert.SerializeObject(_pushEvent, Formatting.Indented);
+            Trace.TraceInformation("Visual Studio Online posted an event {0}{1}{0}", Environment.NewLine, content);
+        }
 
-            var awsAccessKeyId = GetHeaderValue(HEADER_AWS_ACCESS_KEY_ID);
-            var awsSecretAccessKey = GetHeaderValue(HEADER_AWS_SECRET_ACCESS_KEY);
-            var awsRegion = GetHeaderValue(HEADER_AWS_REGION_SYSTEM_NAME);
-            var awsBucketName = GetHeaderValue(HEADER_AWS_BUCKET_NAME);
-
-            string content = JsonConvert.SerializeObject(data, Formatting.Indented);
-            Trace.TraceInformation("Visual Studio Online posted an event from {0}:{1}:{2} to {3}:{4}{5}{6}{5}", 
-                vsoUserName, vsoBaseUrl, vsoRoot,
-                awsRegion, awsBucketName,
-                Environment.NewLine, content);
-
+        private async Task<IHttpActionResult> HandleSynchronizePushAsync()
+        {
             try
             {
-                if (vsoBaseUrl != null && vsoUserName != null && vsoAccessToken != null && vsoRoot != null &&
-                    awsAccessKeyId != null && awsSecretAccessKey != null && awsRegion != null && awsBucketName != null)
-                {
-                    if (_sourceRepository == null)
-                    {
-                        _sourceRepository = new VSORepository(vsoBaseUrl, vsoUserName, vsoAccessToken);
-                    }
-                    if (_changesCalculator == null)
-                    {
-                        _changesCalculator = new ChangesCalculator();
-                    }
-                    if (_destinationRepository == null)
-                    {
-                        _destinationRepository = new AWSS3Repository(awsAccessKeyId, awsSecretAccessKey, awsRegion, awsBucketName);
-                    }
-
-                    var push = data.ToSync();
-                    await _sourceRepository.DownloadChangesAsync(push, vsoRoot);
-                    var itemChanges = _changesCalculator.CalculateItemChanges(push.Commits);
-                    await _destinationRepository.PushItemChangesAsync(itemChanges, vsoRoot);
-
-                    return Ok();
-                }
-                else
-                {
-                    return BadRequest("Missing headers");
-                }
+                await SynchronizePushAsync();
+                return Ok();
+            }
+            catch (AggregateException e)
+            {
+                Trace.TraceError(e.InnerException.ToString());
+                return InternalServerError(e.InnerException);
             }
             catch (Exception e)
             {
-                Trace.TraceError(e.Message);
-                Trace.TraceError(e.StackTrace);
+                Trace.TraceError(e.ToString());
                 return InternalServerError(e);
             }
             finally
@@ -97,14 +104,16 @@ namespace SourceControlSync.WebApi.Controllers
             }
         }
 
-        private string GetHeaderValue(string headerName)
+        private async Task SynchronizePushAsync()
         {
-            IEnumerable<string> values;
-            if (Request.Headers.TryGetValues(headerName, out values))
-            {
-                return values.FirstOrDefault();
-            }
-            return null;
+            var push = _pushEvent.ToSync();
+            string root = _parameters[HEADER_ROOT];
+            SourceRepository.ConnectionString = _parameters[HEADER_SOURCE_CONNECTIONSTRING];
+            DestinationRepository.ConnectionString = _parameters[HEADER_DESTINATION_CONNECTIONSTRING];
+
+            await SourceRepository.DownloadChangesAsync(push, root, _token);
+            ChangesCalculator.CalculateItemChanges(push.Commits);
+            await DestinationRepository.PushItemChangesAsync(ChangesCalculator.ItemChanges, root);
         }
     }
 }

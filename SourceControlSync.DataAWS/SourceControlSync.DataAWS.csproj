@@ -43,8 +43,18 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AWSS3CommandFactory.cs" />
+    <Compile Include="Bucket.cs" />
+    <Compile Include="Credentials.cs" />
     <Compile Include="AWSS3Repository.cs" />
+    <Compile Include="Commands\DeleteItemCommand.cs" />
+    <Compile Include="Commands\S3ItemCommand.cs" />
+    <Compile Include="AWSS3ConnectionStringBuilder.cs" />
+    <Compile Include="IItemCommand.cs" />
+    <Compile Include="Commands\NullItemCommand.cs" />
+    <Compile Include="ICommandFactory.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Commands\UploadItemCommand.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

@@ -1,91 +1,88 @@
-﻿using Amazon;
-using Amazon.S3;
-using Amazon.S3.Model;
-using SourceControlSync.Domain;
-using SourceControlSync.Domain.Extensions;
+﻿using SourceControlSync.Domain;
 using SourceControlSync.Domain.Models;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
-using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace SourceControlSync.DataAWS
 {
     public class AWSS3Repository : IDestinationRepository
     {
-        private string _accessKeyId;
-        private string _secretAccessKey;
-        private RegionEndpoint _region;
-        private string _bucketName;
+        private readonly IItemCommand _deleteCommand;
+        private readonly IItemCommand _uploadCommand;
+        private readonly IItemCommand _nullCommand;
 
-        public AWSS3Repository(string accessKeyId, string secretAccessKey, string systemName, string bucketName)
+        public AWSS3Repository(ICommandFactory commandFactory)
         {
-            _accessKeyId = accessKeyId;
-            _secretAccessKey = secretAccessKey;
-            _region = RegionEndpoint.GetBySystemName(systemName);
-            _bucketName = bucketName;
+            _deleteCommand = commandFactory.CreateDeleteCommand();
+            _uploadCommand = commandFactory.CreateUploadCommand(); ;
+            _nullCommand = commandFactory.CreateNullCommand();
         }
 
-        public async Task PushItemChangesAsync(IEnumerable<ItemChange> changes, string root)
-        {
-            if (root == null)
+        public string ConnectionString 
+        { 
+            set
             {
-                throw new ArgumentNullException("root");
-            }
-
-            using (var s3Client = new AmazonS3Client(_accessKeyId, _secretAccessKey, _region))
-            {
-                var tasks = new List<Task>();
-                foreach (var itemChange in changes.Where(c => !string.IsNullOrEmpty(c.Item.Path) && c.Item.Path.StartsWith(root)))
-                {
-                    if ((itemChange.ChangeType & ItemChangeType.Delete) != 0)
-                    {
-                        tasks.Add(DeleteItemAsync(s3Client, itemChange, root));
-                    }
-                    else if (itemChange.NewContent != null)
-                    {
-                        tasks.Add(UploadItemAsync(s3Client, itemChange, root));
-                    }
-                }
-                await Task.WhenAll(tasks);
+                _deleteCommand.ConnectionString = value;
+                _uploadCommand.ConnectionString = value;
+                _nullCommand.ConnectionString = value;
             }
         }
 
-        private async Task DeleteItemAsync(AmazonS3Client s3Client, ItemChange itemChange, string root)
+        public async Task PushItemChangesAsync(IEnumerable<ItemChange> itemChanges, string root)
         {
-            var request = new DeleteObjectRequest()
-            {
-                BucketName = _bucketName,
-                Key = itemChange.Item.Path.Substring(root.Length)
-            };
-            var response = await s3Client.DeleteObjectAsync(request);
+            var tasks = from itemChange in GetItemChangesInRoot(itemChanges, root)
+                        select ExecuteItemChangeOnS3BucketAsync(itemChange);
+            await Task.WhenAll(tasks);
+        }
 
-            if (response.HttpStatusCode != HttpStatusCode.NoContent)
+        private static IEnumerable<ItemChange> GetItemChangesInRoot(IEnumerable<ItemChange> itemChanges, string root)
+        {
+            return from change in itemChanges
+                   where !string.IsNullOrEmpty(change.Item.Path) && change.Item.Path.StartsWith(root)
+                   select new ItemChange()
+                   {
+                       ChangeType = change.ChangeType,
+                       Item = new Item()
+                       {
+                           ContentMetadata = change.Item.ContentMetadata,
+                           Path = change.Item.Path.Substring(root.Length)
+                       },
+                       NewContent = change.NewContent
+                   };
+        }
+
+        private Task ExecuteItemChangeOnS3BucketAsync(ItemChange itemChange)
+        {
+            var command = GetItemChangeCommand(itemChange);
+            return command.ExecuteOnS3BucketAsync(itemChange, CancellationToken.None);
+        }
+
+        private IItemCommand GetItemChangeCommand(ItemChange itemChange)
+        {
+            if (IsDeleteOperation(itemChange))
             {
-                throw new ApplicationException(string.Format("Failed to delete {0} from S3", itemChange.Item.Path));
+                return _deleteCommand;
+            }
+            else if (IsUploadOperation(itemChange))
+            {
+                return _uploadCommand;
+            }
+            else
+            {
+                return _nullCommand;
             }
         }
 
-        private async Task UploadItemAsync(AmazonS3Client s3Client, ItemChange itemChange, string root)
+        private static bool IsDeleteOperation(ItemChange itemChange)
         {
-            using (var contentStream = itemChange.CreateContentStream())
-            {
-                var request = new PutObjectRequest()
-                {
-                    BucketName = _bucketName,
-                    Key = itemChange.Item.Path.Substring(root.Length),
-                    ContentType = itemChange.Item.ContentMetadata.ContentType,
-                    InputStream = contentStream
-                };
-                var response = await s3Client.PutObjectAsync(request);
+            return (itemChange.ChangeType & ItemChangeType.Delete) != 0;
+        }
 
-                if (response.HttpStatusCode != HttpStatusCode.OK)
-                {
-                    throw new ApplicationException(string.Format("Failed to upload {0} to S3", itemChange.Item.Path));
-                }
-            }
+        private static bool IsUploadOperation(ItemChange itemChange)
+        {
+            return itemChange.NewContent != null;
         }
     }
 }

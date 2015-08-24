@@ -43,7 +43,36 @@ namespace SourceControlSync.DataVSO
 
         public static ItemChangeType ToSync(this Microsoft.TeamFoundation.SourceControl.WebApi.VersionControlChangeType changeType)
         {
-            return (ItemChangeType)changeType;
+            var itemChangeType = ItemChangeType.None;
+            if ((changeType & Microsoft.TeamFoundation.SourceControl.WebApi.VersionControlChangeType.Add) != 0)
+            {
+                itemChangeType |= ItemChangeType.Add;
+            }
+            if ((changeType & Microsoft.TeamFoundation.SourceControl.WebApi.VersionControlChangeType.Edit) != 0)
+            {
+                itemChangeType |= ItemChangeType.Edit;
+            }
+            if ((changeType & Microsoft.TeamFoundation.SourceControl.WebApi.VersionControlChangeType.Encoding) != 0)
+            {
+                itemChangeType |= ItemChangeType.Encoding;
+            }
+            if ((changeType & Microsoft.TeamFoundation.SourceControl.WebApi.VersionControlChangeType.Rename) != 0)
+            {
+                itemChangeType |= ItemChangeType.Rename;
+            }
+            if ((changeType & Microsoft.TeamFoundation.SourceControl.WebApi.VersionControlChangeType.Delete) != 0)
+            {
+                itemChangeType |= ItemChangeType.Delete;
+            }
+            if ((changeType & Microsoft.TeamFoundation.SourceControl.WebApi.VersionControlChangeType.Undelete) != 0)
+            {
+                itemChangeType |= ItemChangeType.Undelete;
+            }
+            if ((changeType & Microsoft.TeamFoundation.SourceControl.WebApi.VersionControlChangeType.SourceRename) != 0)
+            {
+                itemChangeType |= ItemChangeType.SourceRename;
+            }
+            return itemChangeType;
         }
 
         public static Item ToSync(this Microsoft.TeamFoundation.SourceControl.WebApi.GitItem item)
@@ -52,6 +81,11 @@ namespace SourceControlSync.DataVSO
             {
                 Path = item.Path
             };
+        }
+
+        public static bool IsInRoot(this Microsoft.TeamFoundation.SourceControl.WebApi.GitItem item, string root)
+        {
+            return item.Path.StartsWith(root);
         }
 
         public static FileContentMetadata ToSync(this Microsoft.TeamFoundation.SourceControl.WebApi.FileContentMetadata metadata)
@@ -66,31 +100,6 @@ namespace SourceControlSync.DataVSO
                 newMetadata.Encoding = Encoding.GetEncoding(metadata.Encoding);
             }
             return newMetadata;
-        }
-
-        public static ItemContent ToSync(this Microsoft.TeamFoundation.SourceControl.WebApi.ItemContent content)
-        {
-            return new ItemContent()
-            {
-                ContentType = content.ContentType.ToSync(),
-                Content = content.Content
-            };
-        }
-
-        public static ItemContentType ToSync(this Microsoft.TeamFoundation.SourceControl.WebApi.ItemContentType contentType)
-        {
-            if (contentType == Microsoft.TeamFoundation.SourceControl.WebApi.ItemContentType.Base64Encoded)
-            {
-                return ItemContentType.Base64Encoded;
-            }
-            else if (contentType == Microsoft.TeamFoundation.SourceControl.WebApi.ItemContentType.RawText)
-            {
-                return ItemContentType.RawText;
-            }
-            else
-            {
-                throw new ArgumentException("Unknown content type", "contentType");
-            }
         }
 
         public static UserDate ToSync(this Microsoft.TeamFoundation.SourceControl.WebApi.GitUserDate userDate)

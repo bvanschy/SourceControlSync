@@ -22,12 +22,11 @@ namespace SourceControlSync.WebApi.TraceListeners
 
         public SmtpTraceListener()
         {
-
         }
 
         public SmtpTraceListener(string initializeData)
         {
-            var parms = initializeData.Split(':');
+            var parms = initializeData.Split(';');
             if (parms.Length == 8)
             {
                 _host = parms[0];
@@ -54,22 +53,17 @@ namespace SourceControlSync.WebApi.TraceListeners
         public override void Flush()
         {
             SendEmail(_message.ToString());
-            
-            base.Flush();
-
             _message.Clear();
+            base.Flush();
         }
 
         private void SendEmail(string message)
         {
-            if (!string.IsNullOrWhiteSpace(_username) && !string.IsNullOrWhiteSpace(_password))
+            using (var smtpClient = new SmtpClient(_host, _port))
             {
-                using (var smtpClient = new SmtpClient(_host, _port))
-                {
-                    smtpClient.EnableSsl = _ssl;
-                    smtpClient.Credentials = new NetworkCredential(_username, _password);
-                    smtpClient.Send(_from, _to, _subject, message);
-                }
+                smtpClient.EnableSsl = _ssl;
+                smtpClient.Credentials = new NetworkCredential(_username, _password);
+                smtpClient.Send(_from, _to, _subject, message);
             }
         }
     }

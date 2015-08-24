@@ -7,6 +7,7 @@ namespace SourceControlSync.Domain
 {
     public interface IDestinationRepository
     {
+        string ConnectionString { set; }
         Task PushItemChangesAsync(IEnumerable<ItemChange> changes, string root);
     }
 }

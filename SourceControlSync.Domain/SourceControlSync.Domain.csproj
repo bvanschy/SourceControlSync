@@ -40,6 +40,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ChangesCalculator.cs" />
+    <Compile Include="ConnectionStringBuilder.cs" />
     <Compile Include="IChangesCalculator.cs" />
     <Compile Include="IDestinationRepository.cs" />
     <Compile Include="Extensions\ItemChangeExtensions.cs" />

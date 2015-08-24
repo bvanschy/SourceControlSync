@@ -105,9 +105,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="DownloadRequest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="VSOCodePushed.cs" />
     <Compile Include="VSOCodePushedExtensions.cs" />
+    <Compile Include="VSOConnectionStringBuilder.cs" />
+    <Compile Include="Credentials.cs" />
     <Compile Include="VSORepository.cs" />
   </ItemGroup>
   <ItemGroup>

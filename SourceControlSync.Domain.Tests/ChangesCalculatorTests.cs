@@ -17,9 +17,9 @@ namespace SourceControlSync.Domain.Tests
             var commit = CreateCommit(0, change);
             var converter = CreateChangesCalculator();
 
-            var itemChanges = converter.CalculateItemChanges(commit);
+            converter.CalculateItemChanges(commit);
 
-            AssertCalculatedChanges(itemChanges, change);
+            AssertCalculatedChanges(converter.ItemChanges, change);
         }
 
         [TestMethod]
@@ -29,9 +29,9 @@ namespace SourceControlSync.Domain.Tests
             var commit = CreateCommit(0, change);
             var converter = CreateChangesCalculator();
 
-            var itemChanges = converter.CalculateItemChanges(commit);
+            converter.CalculateItemChanges(commit);
 
-            AssertCalculatedChanges(itemChanges, change);
+            AssertCalculatedChanges(converter.ItemChanges, change);
         }
 
         [TestMethod]
@@ -43,9 +43,9 @@ namespace SourceControlSync.Domain.Tests
             var commitEdit = CreateCommit(1, changeEdit);
             var converter = CreateChangesCalculator();
 
-            var itemChanges = converter.CalculateItemChanges(commitAdd, commitEdit);
+            converter.CalculateItemChanges(commitAdd, commitEdit);
 
-            AssertCalculatedChanges(itemChanges, new ItemChange()
+            AssertCalculatedChanges(converter.ItemChanges, new ItemChange()
             {
                 ChangeType = ItemChangeType.Add,
                 Item = changeEdit.Item,
@@ -60,9 +60,9 @@ namespace SourceControlSync.Domain.Tests
             var commit = CreateCommit(0, change);
             var converter = CreateChangesCalculator();
 
-            var itemChanges = converter.CalculateItemChanges(commit);
+            converter.CalculateItemChanges(commit);
 
-            AssertCalculatedChanges(itemChanges, change);
+            AssertCalculatedChanges(converter.ItemChanges, change);
         }
 
         [TestMethod]
@@ -74,9 +74,9 @@ namespace SourceControlSync.Domain.Tests
             var commitDelete = CreateCommit(1, changeDelete);
             var converter = CreateChangesCalculator();
 
-            var itemChanges = converter.CalculateItemChanges(commitAdd, commitDelete);
+            converter.CalculateItemChanges(commitAdd, commitDelete);
 
-            AssertCalculatedChanges(itemChanges);
+            AssertCalculatedChanges(converter.ItemChanges);
         }
 
         [TestMethod]
@@ -88,9 +88,9 @@ namespace SourceControlSync.Domain.Tests
             var commitDelete = CreateCommit(1, changeDelete);
             var converter = CreateChangesCalculator();
 
-            var itemChanges = converter.CalculateItemChanges(commitEdit, commitDelete);
+            converter.CalculateItemChanges(commitEdit, commitDelete);
 
-            AssertCalculatedChanges(itemChanges, changeDelete);
+            AssertCalculatedChanges(converter.ItemChanges, changeDelete);
         }
 
         [TestMethod]
@@ -104,9 +104,9 @@ namespace SourceControlSync.Domain.Tests
             var commitDelete = CreateCommit(2, changeDelete);
             var converter = CreateChangesCalculator();
 
-            var itemChanges = converter.CalculateItemChanges(commitAdd, commitEdit, commitDelete);
+            converter.CalculateItemChanges(commitAdd, commitEdit, commitDelete);
 
-            AssertCalculatedChanges(itemChanges);
+            AssertCalculatedChanges(converter.ItemChanges);
         }
 
         [TestMethod]
@@ -118,9 +118,9 @@ namespace SourceControlSync.Domain.Tests
             var commitAdd = CreateCommit(1, changeAdd);
             var converter = CreateChangesCalculator();
 
-            var itemChanges = converter.CalculateItemChanges(commitDelete, commitAdd);
+            converter.CalculateItemChanges(commitDelete, commitAdd);
 
-            AssertCalculatedChanges(itemChanges, changeAdd);
+            AssertCalculatedChanges(converter.ItemChanges, changeAdd);
         }
 
         [TestMethod]
@@ -131,9 +131,9 @@ namespace SourceControlSync.Domain.Tests
             var commit = CreateCommit(0, changeRename, changeDelete);
             var converter = CreateChangesCalculator();
 
-            var itemChanges = converter.CalculateItemChanges(commit);
+            converter.CalculateItemChanges(commit);
 
-            AssertCalculatedChanges(itemChanges, changeRename, changeDelete);
+            AssertCalculatedChanges(converter.ItemChanges, changeRename, changeDelete);
         }
 
         [TestMethod]
@@ -144,9 +144,9 @@ namespace SourceControlSync.Domain.Tests
             var commit = CreateCommit(0, changeRename, changeDelete);
             var converter = CreateChangesCalculator();
 
-            var itemChanges = converter.CalculateItemChanges(commit);
+            converter.CalculateItemChanges(commit);
 
-            AssertCalculatedChanges(itemChanges, changeRename, changeDelete);
+            AssertCalculatedChanges(converter.ItemChanges, changeRename, changeDelete);
         }
 
         [TestMethod]
@@ -159,9 +159,9 @@ namespace SourceControlSync.Domain.Tests
             var commitDelete = CreateCommit(1, changeDelete);
             var converter = CreateChangesCalculator();
 
-            var itemChanges = converter.CalculateItemChanges(commitRename, commitDelete);
+            converter.CalculateItemChanges(commitRename, commitDelete);
 
-            AssertCalculatedChanges(itemChanges, changeDelete2);
+            AssertCalculatedChanges(converter.ItemChanges, changeDelete2);
         }
 
         [TestMethod]
@@ -174,9 +174,9 @@ namespace SourceControlSync.Domain.Tests
             var commitDelete = CreateCommit(1, changeDelete);
             var converter = CreateChangesCalculator();
 
-            var itemChanges = converter.CalculateItemChanges(commitRename, commitDelete);
+            converter.CalculateItemChanges(commitRename, commitDelete);
 
-            AssertCalculatedChanges(itemChanges, changeDelete2);
+            AssertCalculatedChanges(converter.ItemChanges, changeDelete2);
         }
 
         [TestMethod]
@@ -189,9 +189,9 @@ namespace SourceControlSync.Domain.Tests
             var commitAdd = CreateCommit(1, changeAdd);
             var converter = CreateChangesCalculator();
 
-            var itemChanges = converter.CalculateItemChanges(commitRename, commitAdd);
+            converter.CalculateItemChanges(commitRename, commitAdd);
 
-            AssertCalculatedChanges(itemChanges, changeRename, changeAdd);
+            AssertCalculatedChanges(converter.ItemChanges, changeRename, changeAdd);
         }
 
         private ItemChange CreateChange(ItemChangeType changeType, string path)

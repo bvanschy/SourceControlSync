@@ -3,11 +3,12 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace SourceControlSync.Domain
+namespace SourceControlSync.DataAWS
 {
-    public interface ISourceRepository
+    public interface IItemCommand
     {
         string ConnectionString { set; }
-        Task DownloadChangesAsync(Push push, string root, CancellationToken token);
+
+        Task ExecuteOnS3BucketAsync(ItemChange itemChange, CancellationToken token);
     }
 }

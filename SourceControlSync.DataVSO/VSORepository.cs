@@ -1,100 +1,56 @@
-﻿using Microsoft.VisualStudio.Services.Common;
-using SourceControlSync.Domain;
+﻿using SourceControlSync.Domain;
 using SourceControlSync.Domain.Models;
 using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Net;
-using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace SourceControlSync.DataVSO
 {
     public class VSORepository : ISourceRepository
     {
-        private string _baseUrl;
-        private string _userName;
-        private string _accessToken;
+        private Uri _baseUrl;
+        private Credentials _credentials;
 
-        public VSORepository(string baseUrl, string userName, string accessToken)
+        public string ConnectionString
         {
-            _baseUrl = baseUrl;
-            _userName = userName;
-            _accessToken = accessToken;
+            set
+            {
+                var connectionStringBuilder = new VSOConnectionStringBuilder(value);
+                _baseUrl = connectionStringBuilder.BaseUrl;
+                _credentials = connectionStringBuilder.Credentials;
+            }
         }
 
-        public async Task DownloadChangesAsync(Push push, string root = null)
+        public async Task DownloadChangesAsync(Push push, string root, CancellationToken token)
         {
-            var repositoryId = push.Repository.Id;
-            var credentials = new VssCredentials(new WindowsCredential(new NetworkCredential(_userName, _accessToken)));
-            var httpClient = new Microsoft.TeamFoundation.SourceControl.WebApi.GitHttpClient(new Uri(_baseUrl), credentials);
-
-            var itemTasks = new List<Task>();
-            foreach (var commit in push.Commits)
-            {
-                var commitChanges = await httpClient.GetChangesAsync(commit.CommitId, repositoryId);
-                var itemChanges = commitChanges.Changes;
-                commit.Changes = itemChanges.Where(c => root == null || c.Item.Path.StartsWith(root)).ToSync();
-
-                foreach (var change in commit.Changes)
-                {
-                    if ((change.ChangeType & (ItemChangeType.Edit | ItemChangeType.Add | ItemChangeType.Rename)) != 0)
-                    {
-                        itemTasks.Add(DownloadItemAsync(repositoryId, commit.CommitId, change, httpClient));
-                    }
-                }
-            }
-            await Task.WhenAll(itemTasks);
+            ValidateConnectionParameters();
+            var httpClient = CreateHttpClient();
+            var request = new DownloadRequest(httpClient);
+            await request.DownloadChangesInAllCommitsAsync(push, root, token);
         }
 
-        private static async Task DownloadItemAsync(Guid repositoryId, string commitId, ItemChange change,
-            Microsoft.TeamFoundation.SourceControl.WebApi.GitHttpClient httpClient)
+        private void ValidateConnectionParameters()
         {
-            var item = await httpClient.GetItemAsync(repositoryId, change.Item.Path, includeContentMetadata: true,
-                                                        versionDescriptor: new Microsoft.TeamFoundation.SourceControl.WebApi.GitVersionDescriptor() 
-                                                        { 
-                                                            VersionType = Microsoft.TeamFoundation.SourceControl.WebApi.GitVersionType.Commit, 
-                                                            Version = commitId 
-                                                        });
-            var content = await httpClient.GetBlobContentAsync(repositoryId, item.ObjectId);
-
-            change.Item.ContentMetadata = item.ContentMetadata.ToSync();
-
-            ItemContent itemContent = null;
-            if (change.Item.ContentMetadata.IsBinary)
+            if (_baseUrl == null)
             {
-                itemContent = await CreateEncodedBinaryItemContent(content);
+                throw new ApplicationException("Invalid ConnectionString");
             }
-            else
+            if (_credentials == null ||
+                string.IsNullOrWhiteSpace(_credentials.UserName) ||
+                string.IsNullOrWhiteSpace(_credentials.AccessToken))
             {
-                itemContent = await CreateRawTextItemContent(change.Item.ContentMetadata.Encoding, content);
+                throw new ApplicationException("Invalid ConnectionString");
             }
-            change.NewContent = itemContent;
         }
 
-        private static async Task<ItemContent> CreateEncodedBinaryItemContent(Stream content)
+        private Microsoft.TeamFoundation.SourceControl.WebApi.GitHttpClient CreateHttpClient()
         {
-            var itemContent = new ItemContent();
-            itemContent.ContentType = ItemContentType.Base64Encoded;
-            using (var memoryStream = new MemoryStream())
-            {
-                await content.CopyToAsync(memoryStream);
-                itemContent.Content = Convert.ToBase64String(memoryStream.ToArray());
-            }
-            return itemContent;
+            var vssCredentials = new Microsoft.VisualStudio.Services.Common.VssCredentials(
+                new Microsoft.VisualStudio.Services.Common.WindowsCredential(
+                    new NetworkCredential(_credentials.UserName, _credentials.AccessToken)));
+            var httpClient = new Microsoft.TeamFoundation.SourceControl.WebApi.GitHttpClient(_baseUrl, vssCredentials);
+            return httpClient;
         }
-
-        private static async Task<ItemContent> CreateRawTextItemContent(Encoding encoding, Stream content)
-        {
-            var itemContent = new ItemContent();
-            using (var streamReader = new StreamReader(content, encoding))
-            {
-                itemContent.ContentType = ItemContentType.RawText;
-                itemContent.Content = await streamReader.ReadToEndAsync();
-            }
-            return itemContent;
-        }
-
     }
 }
