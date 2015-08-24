@@ -28,14 +28,9 @@ Setup Instructions
 1. Add the following headers, substitute appropriate values and credentials:
 
   ```
-  VSO-BaseUrl:https://<<user>>.visualstudio.com/DefaultCollection/
-  VSO-UserName:<<VSO username>>
-  VSO-AccessToken:<<VSO access token>>
-  VSO-Root:/
-  AWS-AccessKeyId:<<AWS access key ID>>
-  AWS-SecretAccessKey:<<AWS secret key>>
-  AWS-RegionSystemName:<<us-east-1>>
-  AWS-BucketName:<<S3 bucket name>>
+  Sync-Root:/
+  Sync-SourceConnectionString:BaseUrl=https://<<user>>.visualstudio.com/DefaultCollection/;UserName=<<VSO username>>;AccessToken=<<VSO access token>>
+  Sync-DestConnectionString:BucketName=<<S3 bucket name>>;RegionSystemName=<<us-east-1>>;AccessKeyId=<<AWS access key ID>>;SecretAccessKey=<<AWS secret key>>
   ```
 
 1. Set "Messages to send" and "Detailed messages to send" to None
