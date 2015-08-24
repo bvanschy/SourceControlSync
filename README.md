@@ -39,10 +39,10 @@ Setup Instructions
 
 HTTP Headers
 ======
-#### VSO-Root
+#### Sync-Root
 This header indicates the source control folder to sync.
 
-For example, setting `VSO-Root:/wwwroot/` with the following source will sync only the files in `/wwwroot/`.
+For example, setting `Sync-Root:/wwwroot/` with the following source will sync only the files in `/wwwroot/`.
 
 From Git:
 ```
@@ -57,9 +57,9 @@ index.html
 images/logo.jpg
 ```
 
-#### AWS-RegionSystemName
-This header indicates the region of the AWS S3 bucket.
+#### RegionSystemName
+This connection string property indicates the region of the AWS S3 bucket.
 
 The system name can be found in the endpoint address.
 
-For example, with Endpoint: bvan-test.s3-website-us-east-1.amazonaws.com, the system name is `us-east-1`.
+For example, with Endpoint: bvan-test.s3-website-us-east-1.amazonaws.com, the region system name is `us-east-1`.
