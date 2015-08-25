@@ -28,14 +28,9 @@ Setup Instructions
 1. Add the following headers, substitute appropriate values and credentials:
 
   ```
-  VSO-BaseUrl:https://<<user>>.visualstudio.com/DefaultCollection/
-  VSO-UserName:<<VSO username>>
-  VSO-AccessToken:<<VSO access token>>
-  VSO-Root:/
-  AWS-AccessKeyId:<<AWS access key ID>>
-  AWS-SecretAccessKey:<<AWS secret key>>
-  AWS-RegionSystemName:<<us-east-1>>
-  AWS-BucketName:<<S3 bucket name>>
+  Sync-Root:/
+  Sync-SourceConnectionString:BaseUrl=https://<<user>>.visualstudio.com/DefaultCollection/;UserName=<<VSO username>>;AccessToken=<<VSO access token>>
+  Sync-DestConnectionString:BucketName=<<S3 bucket name>>;RegionSystemName=<<us-east-1>>;AccessKeyId=<<AWS access key ID>>;SecretAccessKey=<<AWS secret key>>
   ```
 
 1. Set "Messages to send" and "Detailed messages to send" to None
@@ -44,10 +39,10 @@ Setup Instructions
 
 HTTP Headers
 ======
-#### VSO-Root
+#### Sync-Root
 This header indicates the source control folder to sync.
 
-For example, setting `VSO-Root:/wwwroot/` with the following source will sync only the files in `/wwwroot/`.
+For example, setting `Sync-Root:/wwwroot/` with the following source will sync only the files in `/wwwroot/`.
 
 From Git:
 ```
@@ -62,9 +57,9 @@ index.html
 images/logo.jpg
 ```
 
-#### AWS-RegionSystemName
-This header indicates the region of the AWS S3 bucket.
+#### RegionSystemName
+This connection string property indicates the region of the AWS S3 bucket.
 
 The system name can be found in the endpoint address.
 
-For example, with Endpoint: bvan-test.s3-website-us-east-1.amazonaws.com, the system name is `us-east-1`.
+For example, with Endpoint: bvan-test.s3-website-us-east-1.amazonaws.com, the region system name is `us-east-1`.
