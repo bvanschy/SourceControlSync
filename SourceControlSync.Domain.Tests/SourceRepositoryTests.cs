@@ -1,24 +1,25 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using SourceControlSync.DataVSO;
+using SourceControlSync.Domain;
 using SourceControlSync.Domain.Models;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Globalization;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace SourceControlSync.DataVSO.Tests
+namespace SourceControlSync.Domain.Tests
 {
     [TestClass]
-    public class VSORepositoryTests
+    public class SourceRepositoryTests
     {
         [TestMethod]
         public void DownloadCommitWithChanges()
         {
             var push = CreatePushRequest("1b1859c414e800d24036b9ee547d1530431ae055");
-            var repo = CreateVSORepository();
+            var repo = CreateSourceRepository();
 
             repo.DownloadChangesAsync(push, "/", CancellationToken.None).Wait();
 
@@ -29,7 +30,7 @@ namespace SourceControlSync.DataVSO.Tests
         public void DownloadCommitWithAddedTextItem()
         {
             var push = CreatePushRequest("5597f65ce55386a771e4bf6fa190b5a26c0f5ce5");
-            var repo = CreateVSORepository();
+            var repo = CreateSourceRepository();
 
             repo.DownloadChangesAsync(push, "/", CancellationToken.None).Wait();
 
@@ -41,14 +42,14 @@ namespace SourceControlSync.DataVSO.Tests
             Assert.AreEqual("text/html", change.Item.ContentMetadata.ContentType);
             Assert.IsNotNull(change.NewContent);
             Assert.AreEqual(ItemContentType.RawText, change.NewContent.ContentType);
-            Assert.AreEqual(119, change.NewContent.Content.Length);
+            Assert.AreEqual("Testing", change.NewContent.Content);
         }
 
         [TestMethod]
         public void DownloadCommitWithRenamedTextItem()
         {
             var push = CreatePushRequest("de3e7a550c40fe75085d11e81d5770bc5b0dd33c");
-            var repo = CreateVSORepository();
+            var repo = CreateSourceRepository();
 
             repo.DownloadChangesAsync(push, "/", CancellationToken.None).Wait();
 
@@ -62,14 +63,14 @@ namespace SourceControlSync.DataVSO.Tests
             Assert.AreEqual("text/html", indexItem.Item.ContentMetadata.ContentType);
             Assert.IsNotNull(indexItem.NewContent);
             Assert.AreEqual(ItemContentType.RawText, indexItem.NewContent.ContentType);
-            Assert.AreEqual(128, indexItem.NewContent.Content.Length);
+            Assert.AreEqual("Testing", indexItem.NewContent.Content);
         }
 
         [TestMethod]
         public void DownloadCommitWithRenamedAndEditedItem()
         {
             var push = CreatePushRequest("a620293e7300c85234c5109e9cd9bb056942fbd6");
-            var repo = CreateVSORepository();
+            var repo = CreateSourceRepository();
 
             repo.DownloadChangesAsync(push, "/", CancellationToken.None).Wait();
 
@@ -83,14 +84,14 @@ namespace SourceControlSync.DataVSO.Tests
             Assert.AreEqual("text/html", index3Item.Item.ContentMetadata.ContentType);
             Assert.IsNotNull(index3Item.NewContent);
             Assert.AreEqual(ItemContentType.RawText, index3Item.NewContent.ContentType);
-            Assert.AreEqual(128, index3Item.NewContent.Content.Length);
+            Assert.AreEqual("Testing", index3Item.NewContent.Content);
         }
 
         [TestMethod]
         public void DownloadCommitWithAddedBinaryItem()
         {
             var push = CreatePushRequest("b6f447775f71a092854a2555eea084bd6d19958e");
-            var repo = CreateVSORepository();
+            var repo = CreateSourceRepository();
 
             repo.DownloadChangesAsync(push, "/", CancellationToken.None).Wait();
 
@@ -101,7 +102,7 @@ namespace SourceControlSync.DataVSO.Tests
             Assert.AreEqual("image/x-icon", change.Item.ContentMetadata.ContentType);
             Assert.IsNotNull(change.NewContent);
             Assert.AreEqual(ItemContentType.Base64Encoded, change.NewContent.ContentType);
-            Assert.AreEqual(1536, change.NewContent.Content.Length);
+            Assert.AreEqual(12, change.NewContent.Content.Length);
         }
 
         [TestMethod]
@@ -118,7 +119,7 @@ namespace SourceControlSync.DataVSO.Tests
                 { "5597f65ce55386a771e4bf6fa190b5a26c0f5ce5", "2015-08-16T04:28:13Z" }
             };
             var push = CreatePushRequest(commits);
-            var repo = CreateVSORepository();
+            var repo = CreateSourceRepository();
 
             repo.DownloadChangesAsync(push, "/", CancellationToken.None).Wait();
 
@@ -129,31 +130,11 @@ namespace SourceControlSync.DataVSO.Tests
         public void DownloadNoChanges()
         {
             var push = CreatePushRequest("1b1859c414e800d24036b9ee547d1530431ae055");
-            var repo = CreateVSORepository();
+            var repo = CreateSourceRepository();
 
             repo.DownloadChangesAsync(push, "/fake/", CancellationToken.None).Wait();
 
             Assert.AreEqual(0, push.Commits.Single().Changes.Count());
-        }
-
-        [TestMethod]
-        [ExpectedException(typeof(TaskCanceledException))]
-        public void DownloadCommitWhenCanceled()
-        {
-            var push = CreatePushRequest("1b1859c414e800d24036b9ee547d1530431ae055");
-            var repo = CreateVSORepository();
-
-            var token = new CancellationToken(true);
-            var task = repo.DownloadChangesAsync(push, "/", token);
-
-            try
-            {
-                task.Wait();
-            }
-            catch (AggregateException e)
-            {
-                throw e.InnerException;
-            }
         }
 
         private static Push CreatePushRequest(string commitId)
@@ -183,22 +164,110 @@ namespace SourceControlSync.DataVSO.Tests
             return push;
         }
 
-        private static VSORepository CreateVSORepository()
+        private static ISourceRepository CreateSourceRepository()
         {
-            var connectionStringBuilder = new VSOConnectionStringBuilder()
+            return new SourceRepository(new FakeDownloadRequest());
+        }
+
+        private class FakeDownloadRequest : IDownloadRequest
+        {
+
+            public Task DownloadChangesInCommitAsync(Commit commit, Guid repositoryId, CancellationToken token)
             {
-                BaseUrl = new Uri(ConfigurationManager.AppSettings["VSO-BaseUrl"]),
-                Credentials = new Credentials()
+                var commits = new Dictionary<string, IEnumerable<ItemChange>>()
                 {
-                    UserName = ConfigurationManager.AppSettings["VSO-UserName"],
-                    AccessToken = ConfigurationManager.AppSettings["VSO-AccessToken"]
-                }
-            };
-            var repo = new VSORepository()
+                    {
+                        "5597f65ce55386a771e4bf6fa190b5a26c0f5ce5", 
+                        new ItemChange[]
+                        {
+                            new ItemChange() { ChangeType = ItemChangeType.Add, Item = new Item() { Path = "/index.html" }}
+                        }
+                    },
+                    { 
+                        "1b1859c414e800d24036b9ee547d1530431ae055", 
+                        new ItemChange[] 
+                        { 
+                            new ItemChange() { ChangeType = ItemChangeType.Edit, Item = new Item() { Path = "/index.html" }},
+                            new ItemChange() { ChangeType = ItemChangeType.Add, Item = new Item() { Path = "/index2.html" }}
+                        }
+                    },
+                    {
+                        "be993da1b6b79d0a9361b89fd980000ca7f03823",
+                        new ItemChange[]
+                        {
+                            new ItemChange() { ChangeType = ItemChangeType.Delete, Item = new Item() { Path = "/index.html" }}
+                        }
+                    },
+                    {
+                        "de3e7a550c40fe75085d11e81d5770bc5b0dd33c",
+                        new ItemChange[]
+                        {
+                            new ItemChange() { ChangeType = ItemChangeType.Rename, Item = new Item() { Path = "/index.html" }},
+                            new ItemChange() { ChangeType = ItemChangeType.Delete | ItemChangeType.SourceRename, Item = new Item() { Path = "/index2.html" }}
+                        }
+                    },
+                    {
+                        "a620293e7300c85234c5109e9cd9bb056942fbd6",
+                        new ItemChange[]
+                        {
+                            new ItemChange() { ChangeType = ItemChangeType.Delete | ItemChangeType.SourceRename, Item = new Item() { Path = "/index.html" }},
+                            new ItemChange() { ChangeType = ItemChangeType.Edit | ItemChangeType.Rename, Item = new Item() { Path = "/index3.html" }}
+                        }
+                    },
+                    {
+                        "b6f447775f71a092854a2555eea084bd6d19958e",
+                        new ItemChange[]
+                        {
+                            new ItemChange() { ChangeType = ItemChangeType.Add, Item = new Item() { Path = "/favicon.ico" }}
+                        }
+                    },
+                    {
+                        "fd29ca5fdf9e938c873b29fd1e074aea913b831b",
+                        new ItemChange[]
+                        {
+                            new ItemChange() { ChangeType = ItemChangeType.Add, Item = new Item() { Path = "/index4.ico" }}
+                        }
+                    }
+                };
+                commit.Changes = commits[commit.CommitId];
+                return Task.FromResult(0);
+            }
+
+            public Task DownloadItemAndContentInCommitAsync(ItemChange change, Commit commit, Guid repositoryId, CancellationToken token)
             {
-                ConnectionString = connectionStringBuilder.ConnectionString
-            };
-            return repo;
+                if (change.Item.Path.EndsWith(".html"))
+                {
+                    change.Item.ContentMetadata = new FileContentMetadata()
+                    {
+                        ContentType = "text/html",
+                        IsBinary = false,
+                        Encoding = Encoding.UTF8
+                    };
+                    change.NewContent = new ItemContent()
+                    {
+                        ContentType = ItemContentType.RawText,
+                        Content = "Testing"
+                    };
+                }
+                else if (change.Item.Path.EndsWith(".ico"))
+                {
+                    change.Item.ContentMetadata = new FileContentMetadata()
+                    {
+                        ContentType = "image/x-icon",
+                        IsBinary = true
+                    };
+                    change.NewContent = new ItemContent()
+                    {
+                        ContentType = ItemContentType.Base64Encoded,
+                        Content = Convert.ToBase64String(Encoding.UTF8.GetBytes("Testing"))
+                    };
+                }
+                return Task.FromResult(0);
+            }
+
+            public void Dispose()
+            {
+            }
         }
     }
 }

@@ -25,12 +25,7 @@ namespace SourceControlSync.WebApi.Tests
             var fakeSourceRepository = new FakeSourceRepository();
             var fakeChangesCalculator = new FakeChangesCalculator();
             var fakeDestinationRepository = new FakeDestinationRepository();
-            var controller = new VSOController()
-            {
-                SourceRepository = fakeSourceRepository,
-                ChangesCalculator = fakeChangesCalculator,
-                DestinationRepository = fakeDestinationRepository
-            };
+            var controller = new VSOController(new FakeRepositoryFactory(fakeSourceRepository, fakeDestinationRepository), fakeChangesCalculator);
             controller.Request = new HttpRequestMessage(HttpMethod.Post, "");
             controller.Request.Headers.Add(VSOController.HEADER_SOURCE_CONNECTIONSTRING, "SourceConnectioniString");
             controller.Request.Headers.Add(VSOController.HEADER_DESTINATION_CONNECTIONSTRING, "DestinationConnectionString");
@@ -53,7 +48,7 @@ namespace SourceControlSync.WebApi.Tests
         [TestMethod]
         public void VSOControllerPostNoHeaders()
         {
-            var controller = new VSOController();
+            var controller = new VSOController(null, null);
             controller.Request = new HttpRequestMessage(HttpMethod.Post, "");
 
             var result = controller.PostAsync(null, CancellationToken.None).Result;
@@ -84,12 +79,32 @@ namespace SourceControlSync.WebApi.Tests
             return push;
         }
 
+        private class FakeRepositoryFactory : IRepositoryFactory
+        {
+            private readonly ISourceRepository _sourceRepository;
+            private readonly IDestinationRepository _destinationRepository;
+
+            public FakeRepositoryFactory(ISourceRepository sourceRepository, IDestinationRepository destinationRepository)
+            {
+                _sourceRepository = sourceRepository;
+                _destinationRepository = destinationRepository;
+            }
+
+            public ISourceRepository CreateSourceRepository(string connectionString)
+            {
+                return _sourceRepository;
+            }
+
+            public IDestinationRepository CreateDestinationRepository(string connectionString)
+            {
+                return _destinationRepository;
+            }
+        }
+
         private class FakeSourceRepository : ISourceRepository
         {
             public Push PushPassed { get; set; }
             public string RootPassed { get; set; }
-
-            public string ConnectionString { get; set; }
 
             public Task DownloadChangesAsync(Push push, string root, CancellationToken token)
             {
@@ -103,6 +118,27 @@ namespace SourceControlSync.WebApi.Tests
 
                 return Task.FromResult(0);
             }
+
+            public void Dispose()
+            {
+            }
+        }
+
+        private class FakeDestinationRepository : IDestinationRepository
+        {
+            public IEnumerable<ItemChange> ChangesPassed { get; set; }
+            public string RootPassed { get; set; }
+
+            public Task PushItemChangesAsync(IEnumerable<ItemChange> changes, string root)
+            {
+                ChangesPassed = changes;
+                RootPassed = root;
+                return Task.FromResult(0);
+            }
+
+            public void Dispose()
+            {
+            }
         }
 
         private class FakeChangesCalculator : IChangesCalculator
@@ -114,21 +150,6 @@ namespace SourceControlSync.WebApi.Tests
             {
                 CommitsPassed = commits;
                 ItemChanges = commits.SelectMany(c => c.Changes).ToList();
-            }
-        }
-
-        private class FakeDestinationRepository : IDestinationRepository
-        {
-            public IEnumerable<ItemChange> ChangesPassed { get; set; }
-            public string RootPassed { get; set; }
-
-            public string ConnectionString { get; set; }
-
-            public Task PushItemChangesAsync(IEnumerable<ItemChange> changes, string root)
-            {
-                ChangesPassed = changes;
-                RootPassed = root;
-                return Task.FromResult(0);
             }
         }
     }

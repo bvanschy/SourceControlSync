@@ -39,11 +39,16 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="DestinationRepository.cs" />
     <Compile Include="ChangesCalculator.cs" />
     <Compile Include="ConnectionStringBuilder.cs" />
+    <Compile Include="Extensions\ItemExtensions.cs" />
     <Compile Include="IChangesCalculator.cs" />
     <Compile Include="IDestinationRepository.cs" />
     <Compile Include="Extensions\ItemChangeExtensions.cs" />
+    <Compile Include="IDownloadRequest.cs" />
+    <Compile Include="IItemCommand.cs" />
+    <Compile Include="IRepositoryFactory.cs" />
     <Compile Include="ISourceRepository.cs" />
     <Compile Include="Models\Commit.cs" />
     <Compile Include="Models\FileContentMetadata.cs" />
@@ -53,7 +58,9 @@
     <Compile Include="Models\Push.cs" />
     <Compile Include="Models\Repository.cs" />
     <Compile Include="Models\UserDate.cs" />
+    <Compile Include="NullItemCommand.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SourceRepository.cs" />
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

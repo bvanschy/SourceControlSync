@@ -2,15 +2,17 @@
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace SourceControlSync.DataAWS
+namespace SourceControlSync.Domain
 {
     public class NullItemCommand : IItemCommand
     {
-        public string ConnectionString { get; set; }
-
-        public Task ExecuteOnS3BucketAsync(ItemChange itemChange, CancellationToken token)
+        public Task ExecuteOnDestinationAsync(ItemChange itemChange, CancellationToken token)
         {
             return Task.FromResult(0);
+        }
+
+        public void Dispose()
+        {
         }
     }
 }

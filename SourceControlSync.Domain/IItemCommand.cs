@@ -5,8 +5,8 @@ using System.Threading.Tasks;
 
 namespace SourceControlSync.Domain
 {
-    public interface ISourceRepository : IDisposable
+    public interface IItemCommand : IDisposable
     {
-        Task DownloadChangesAsync(Push push, string root, CancellationToken token);
+        Task ExecuteOnDestinationAsync(ItemChange itemChange, CancellationToken token);
     }
 }

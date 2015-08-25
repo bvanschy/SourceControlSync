@@ -1,5 +1,6 @@
 ﻿using Amazon.S3;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using SourceControlSync.Domain;
 using SourceControlSync.Domain.Models;
 using System;
 using System.Configuration;
@@ -34,7 +35,7 @@ namespace SourceControlSync.DataAWS.Tests
             };
             var command = CreateUploadCommand();
 
-            command.ExecuteOnS3BucketAsync(itemChange, CancellationToken.None).Wait();
+            command.ExecuteOnDestinationAsync(itemChange, CancellationToken.None).Wait();
         }
 
         private static IItemCommand CreateUploadCommand()
@@ -53,10 +54,7 @@ namespace SourceControlSync.DataAWS.Tests
                 }
             };
 
-            return new UploadItemCommand()
-            {
-                ConnectionString = connectionStringBuilder.ConnectionString
-            };
+            return new UploadItemCommand(connectionStringBuilder.ConnectionString);
         }
     }
 }

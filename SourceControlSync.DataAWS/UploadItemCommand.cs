@@ -1,12 +1,8 @@
-﻿using Amazon.S3;
-using Amazon.S3.Model;
+﻿using Amazon.S3.Model;
 using SourceControlSync.Domain.Extensions;
 using SourceControlSync.Domain.Models;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -14,10 +10,13 @@ namespace SourceControlSync.DataAWS
 {
     public class UploadItemCommand : S3ItemCommand
     {
-        public override async Task ExecuteOnS3BucketAsync(ItemChange itemChange, CancellationToken token)
+        public UploadItemCommand(string connectionString)
+            : base(connectionString)
         {
-            ValidateConnectionParameters();
+        }
 
+        public override async Task ExecuteOnDestinationAsync(ItemChange itemChange, CancellationToken token)
+        {
             var response = await UploadItemAsync(itemChange, token);
 
             if (response.HttpStatusCode != HttpStatusCode.OK)
@@ -29,7 +28,6 @@ namespace SourceControlSync.DataAWS
         private async Task<PutObjectResponse> UploadItemAsync(ItemChange itemChange, CancellationToken token)
         {
             using (var contentStream = itemChange.CreateContentStream())
-            using (var s3Client = CreateS3Client())
             {
                 var request = new PutObjectRequest()
                 {
@@ -38,7 +36,8 @@ namespace SourceControlSync.DataAWS
                     ContentType = itemChange.Item.ContentMetadata.ContentType,
                     InputStream = contentStream
                 };
-                return await s3Client.PutObjectAsync(request, token);
+                CreateS3Client();
+                return await _s3Client.PutObjectAsync(request, token);
             }
         }
     }

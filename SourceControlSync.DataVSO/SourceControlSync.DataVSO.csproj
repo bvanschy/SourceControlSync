@@ -111,7 +111,6 @@
     <Compile Include="VSOCodePushedExtensions.cs" />
     <Compile Include="VSOConnectionStringBuilder.cs" />
     <Compile Include="Credentials.cs" />
-    <Compile Include="VSORepository.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />

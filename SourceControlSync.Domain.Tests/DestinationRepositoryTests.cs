@@ -1,5 +1,5 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using SourceControlSync.DataAWS;
+using SourceControlSync.Domain;
 using SourceControlSync.Domain.Models;
 using System;
 using System.Collections.Generic;
@@ -10,10 +10,10 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace SourceControlSync.DataAWS.Tests
+namespace SourceControlSync.Domain.Tests
 {
     [TestClass]
-    public class AWSS3RepositoryTests
+    public class DestinationRepositoryTests
     {
         [TestMethod]
         public void DeleteItem()
@@ -30,7 +30,7 @@ namespace SourceControlSync.DataAWS.Tests
                 }
             };
             var fakeCommand = new FakeCommand();
-            var repo = new AWSS3Repository(new FakeCommandFactory(fakeCommand, null, null));
+            var repo = new DestinationRepository(fakeCommand, null, null);
 
             repo.PushItemChangesAsync(itemChanges, "/").Wait();
 
@@ -63,7 +63,7 @@ namespace SourceControlSync.DataAWS.Tests
                 }
             };
             var fakeCommand = new FakeCommand();
-            var repo = new AWSS3Repository(new FakeCommandFactory(null, fakeCommand, null));
+            var repo = new DestinationRepository(null, fakeCommand, null);
 
             repo.PushItemChangesAsync(itemChanges, "/").Wait();
 
@@ -97,7 +97,7 @@ namespace SourceControlSync.DataAWS.Tests
                 }
             };
             var fakeCommand = new FakeCommand();
-            var repo = new AWSS3Repository(new FakeCommandFactory(null, fakeCommand, null));
+            var repo = new DestinationRepository(null, fakeCommand, null);
 
             repo.PushItemChangesAsync(itemChanges, "/").Wait();
 
@@ -131,7 +131,7 @@ namespace SourceControlSync.DataAWS.Tests
                 }
             };
             var fakeCommand = new FakeCommand();
-            var repo = new AWSS3Repository(new FakeCommandFactory(null, fakeCommand, null));
+            var repo = new DestinationRepository(null, fakeCommand, null);
 
             repo.PushItemChangesAsync(itemChanges, "/").Wait();
 
@@ -155,7 +155,7 @@ namespace SourceControlSync.DataAWS.Tests
                 }
             };
             var fakeCommand = new FakeCommand();
-            var repo = new AWSS3Repository(new FakeCommandFactory(null, null, fakeCommand));
+            var repo = new DestinationRepository(null, null, fakeCommand);
 
             repo.PushItemChangesAsync(itemChanges, "/").Wait();
 
@@ -169,39 +169,14 @@ namespace SourceControlSync.DataAWS.Tests
 
             public string ConnectionString { get; set; }
 
-            public Task ExecuteOnS3BucketAsync(ItemChange itemChange, CancellationToken token)
+            public Task ExecuteOnDestinationAsync(ItemChange itemChange, CancellationToken token)
             {
                 ItemChangeExecuted = itemChange;
                 return Task.FromResult(0);
             }
-        }
 
-        private class FakeCommandFactory : ICommandFactory
-        {
-            private IItemCommand _deleteCommand;
-            private IItemCommand _uploadCommand;
-            private IItemCommand _nullCommand;
-
-            public FakeCommandFactory(IItemCommand deleteCommand, IItemCommand uploadCommand, IItemCommand nullCommand)
+            public void Dispose()
             {
-                _deleteCommand = deleteCommand;
-                _uploadCommand = uploadCommand;
-                _nullCommand = nullCommand;
-            }
-
-            public IItemCommand CreateUploadCommand()
-            {
-                return _uploadCommand;
-            }
-
-            public IItemCommand CreateDeleteCommand()
-            {
-                return _deleteCommand;
-            }
-
-            public IItemCommand CreateNullCommand()
-            {
-                return _nullCommand;
             }
         }
     }

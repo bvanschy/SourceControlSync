@@ -1,8 +1,6 @@
 ﻿using Newtonsoft.Json;
-using SourceControlSync.DataAWS;
 using SourceControlSync.DataVSO;
 using SourceControlSync.Domain;
-using SourceControlSync.Domain.Models;
 using SourceControlSync.WebApi.Models;
 using System;
 using System.Diagnostics;
@@ -18,40 +16,17 @@ namespace SourceControlSync.WebApi.Controllers
         public const string HEADER_SOURCE_CONNECTIONSTRING = "Sync-SourceConnectionString";
         public const string HEADER_DESTINATION_CONNECTIONSTRING = "Sync-DestConnectionString";
 
+        private readonly IRepositoryFactory _repositoryFactory;
+        private readonly IChangesCalculator _changesCalculator;
+
         private VSOCodePushed _pushEvent;
         private CancellationToken _token;
         private HeaderParameters _parameters;
 
-        private ISourceRepository _sourceRepository;
-        private IChangesCalculator _changesCalculator;
-        private IDestinationRepository _destinationRepository;
-
-        public ISourceRepository SourceRepository 
+        public VSOController(IRepositoryFactory repositoryFactory, IChangesCalculator changesCalculator)
         {
-            get 
-            { 
-                _sourceRepository = _sourceRepository ?? new VSORepository();
-                return _sourceRepository;
-            }
-            set { _sourceRepository = value; }
-        }
-        public IChangesCalculator ChangesCalculator 
-        {
-            get 
-            {
-                _changesCalculator = _changesCalculator ?? new ChangesCalculator();
-                return _changesCalculator; 
-            }
-            set { _changesCalculator = value; }
-        }
-        public IDestinationRepository DestinationRepository 
-        {
-            get 
-            { 
-                _destinationRepository = _destinationRepository ?? new AWSS3Repository(new AWSS3CommandFactory());
-                return _destinationRepository;
-            }
-            set { _destinationRepository = value; }
+            _repositoryFactory = repositoryFactory;
+            _changesCalculator = changesCalculator;
         }
 
         public async Task<IHttpActionResult> PostAsync(VSOCodePushed data, CancellationToken token)
@@ -108,12 +83,13 @@ namespace SourceControlSync.WebApi.Controllers
         {
             var push = _pushEvent.ToSync();
             string root = _parameters[HEADER_ROOT];
-            SourceRepository.ConnectionString = _parameters[HEADER_SOURCE_CONNECTIONSTRING];
-            DestinationRepository.ConnectionString = _parameters[HEADER_DESTINATION_CONNECTIONSTRING];
-
-            await SourceRepository.DownloadChangesAsync(push, root, _token);
-            ChangesCalculator.CalculateItemChanges(push.Commits);
-            await DestinationRepository.PushItemChangesAsync(ChangesCalculator.ItemChanges, root);
+            using (var sourceRepository = _repositoryFactory.CreateSourceRepository(_parameters[HEADER_SOURCE_CONNECTIONSTRING]))
+            using (var destinationRepository = _repositoryFactory.CreateDestinationRepository(_parameters[HEADER_DESTINATION_CONNECTIONSTRING]))
+            {
+                await sourceRepository.DownloadChangesAsync(push, root, _token);
+                _changesCalculator.CalculateItemChanges(push.Commits);
+                await destinationRepository.PushItemChangesAsync(_changesCalculator.ItemChanges, root);
+            }
         }
     }
 }

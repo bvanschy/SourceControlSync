@@ -1,80 +1,86 @@
-﻿using SourceControlSync.Domain.Extensions;
+﻿using SourceControlSync.Domain;
+using SourceControlSync.Domain.Extensions;
 using SourceControlSync.Domain.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace SourceControlSync.DataVSO
 {
-    class DownloadRequest
+    public class DownloadRequest : IDownloadRequest
     {
-        private readonly Microsoft.TeamFoundation.SourceControl.WebApi.GitHttpClient _httpClient;
+        private readonly Uri _baseUrl;
+        private readonly Credentials _credentials;
 
-        private Push _push;
-        private string _root;
-        private CancellationToken _token;
+        private Microsoft.TeamFoundation.SourceControl.WebApi.GitHttpClient _httpClient;
 
-        public DownloadRequest(Microsoft.TeamFoundation.SourceControl.WebApi.GitHttpClient httpClient)
+        public DownloadRequest(string connectionString)
         {
-            _httpClient = httpClient;
+            var connectionStringBuilder = new VSOConnectionStringBuilder(connectionString);
+            _baseUrl = connectionStringBuilder.BaseUrl;
+            _credentials = connectionStringBuilder.Credentials;
         }
 
-        public async Task DownloadChangesInAllCommitsAsync(Push push, string root, CancellationToken token)
+        public async Task DownloadChangesInCommitAsync(Commit commit, Guid repositoryId, CancellationToken token)
         {
-            _push = push;
-            _root = root;
-            _token = token;
-
-            var itemTasks = from commit in push.Commits
-                            select DownloadCommitAsync(commit);
-            await Task.WhenAll(itemTasks);
+            CreateHttpClient();
+            var commitChanges = await _httpClient.GetChangesAsync(commit.CommitId, repositoryId,
+                                        cancellationToken: token);
+            commit.Changes = commitChanges.Changes.ToSync();
         }
 
-        private async Task DownloadCommitAsync(Commit commit)
+        public async Task DownloadItemAndContentInCommitAsync(ItemChange change, Commit commit, Guid repositoryId, CancellationToken token)
         {
-            await DownloadChangesInCommitAsync(commit);
-            await DownloadItemAndContentInChangesAsync(commit);
-        }
+            CreateHttpClient();
 
-        private async Task DownloadChangesInCommitAsync(Commit commit)
-        {
-            var commitChanges = await _httpClient.GetChangesAsync(commit.CommitId, _push.Repository.Id,
-                                        cancellationToken: _token);
-            var changesInRoot = commitChanges.Changes.Where(c => c.Item.IsInRoot(_root));
-            commit.Changes = changesInRoot.ToSync();
-        }
-
-        private async Task DownloadItemAndContentInChangesAsync(Commit commit)
-        {
-            var tasks = from change in commit.Changes
-                        where ChangeTypeHasContent(change)
-                        select DownloadItemAndContentInCommitAsync(change, commit);
-            await Task.WhenAll(tasks);
-        }
-
-        private static bool ChangeTypeHasContent(ItemChange change)
-        {
-            return (change.ChangeType & (ItemChangeType.Edit | ItemChangeType.Add | ItemChangeType.Rename)) != 0;
-        }
-
-        private async Task DownloadItemAndContentInCommitAsync(ItemChange change, Commit commit)
-        {
-            var item = await _httpClient.GetItemAsync(_push.Repository.Id, change.Item.Path,
+            var item = await _httpClient.GetItemAsync(repositoryId, change.Item.Path,
                                 includeContentMetadata: true,
                                 versionDescriptor: new Microsoft.TeamFoundation.SourceControl.WebApi.GitVersionDescriptor()
                                 {
                                     VersionType = Microsoft.TeamFoundation.SourceControl.WebApi.GitVersionType.Commit,
                                     Version = commit.CommitId
                                 },
-                                cancellationToken: _token);
+                                cancellationToken: token);
             change.Item.ContentMetadata = item.ContentMetadata.ToSync();
 
-            var content = await _httpClient.GetBlobContentAsync(_push.Repository.Id, item.ObjectId,
-                                cancellationToken: _token);
-            change.NewContent = await change.CreateItemContentAsync(content, _token);
+            var content = await _httpClient.GetBlobContentAsync(repositoryId, item.ObjectId,
+                                cancellationToken: token);
+            change.NewContent = await change.CreateItemContentAsync(content, token);
+        }
+
+        private void CreateHttpClient()
+        {
+            if (_httpClient == null)
+            {
+                ValidateConnectionParameters();
+                var vssCredentials = new Microsoft.VisualStudio.Services.Common.VssCredentials(
+                    new Microsoft.VisualStudio.Services.Common.WindowsCredential(
+                        new NetworkCredential(_credentials.UserName, _credentials.AccessToken)));
+                _httpClient = new Microsoft.TeamFoundation.SourceControl.WebApi.GitHttpClient(_baseUrl, vssCredentials);
+            }
+        }
+
+        private void ValidateConnectionParameters()
+        {
+            if (_baseUrl == null)
+            {
+                throw new ApplicationException("Invalid ConnectionString");
+            }
+            if (_credentials == null ||
+                string.IsNullOrWhiteSpace(_credentials.UserName) ||
+                string.IsNullOrWhiteSpace(_credentials.AccessToken))
+            {
+                throw new ApplicationException("Invalid ConnectionString");
+            }
+        }
+
+        public void Dispose()
+        {
+            _httpClient = null;
         }
     }
 }

@@ -1,11 +1,7 @@
-﻿using Amazon.S3;
-using Amazon.S3.Model;
+﻿using Amazon.S3.Model;
 using SourceControlSync.Domain.Models;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -13,10 +9,13 @@ namespace SourceControlSync.DataAWS
 {
     public class DeleteItemCommand : S3ItemCommand
     {
-        public override async Task ExecuteOnS3BucketAsync(ItemChange itemChange, CancellationToken token)
+        public DeleteItemCommand(string connectionString)
+            : base(connectionString)
         {
-            ValidateConnectionParameters();
+        }
 
+        public override async Task ExecuteOnDestinationAsync(ItemChange itemChange, CancellationToken token)
+        {
             var response = await DeleteItemAsync(itemChange, token);
 
             if (response.HttpStatusCode != HttpStatusCode.NoContent)
@@ -27,15 +26,13 @@ namespace SourceControlSync.DataAWS
 
         private async Task<DeleteObjectResponse> DeleteItemAsync(ItemChange itemChange, CancellationToken token)
         {
-            using (var s3Client = CreateS3Client())
+            var request = new DeleteObjectRequest()
             {
-                var request = new DeleteObjectRequest()
-                {
-                    BucketName = _bucket.BucketName,
-                    Key = itemChange.Item.Path
-                };
-                return await s3Client.DeleteObjectAsync(request, token);
-            }
+                BucketName = _bucket.BucketName,
+                Key = itemChange.Item.Path
+            };
+            CreateS3Client();
+            return await _s3Client.DeleteObjectAsync(request, token);
         }
     }
 }

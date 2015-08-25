@@ -1,46 +1,36 @@
-﻿using SourceControlSync.Domain;
+﻿using SourceControlSync.Domain.Extensions;
 using SourceControlSync.Domain.Models;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace SourceControlSync.DataAWS
+namespace SourceControlSync.Domain
 {
-    public class AWSS3Repository : IDestinationRepository
+    public class DestinationRepository : IDestinationRepository
     {
         private readonly IItemCommand _deleteCommand;
         private readonly IItemCommand _uploadCommand;
         private readonly IItemCommand _nullCommand;
 
-        public AWSS3Repository(ICommandFactory commandFactory)
+        public DestinationRepository(IItemCommand deleteCommand, IItemCommand uploadCommand, IItemCommand nullCommand)
         {
-            _deleteCommand = commandFactory.CreateDeleteCommand();
-            _uploadCommand = commandFactory.CreateUploadCommand(); ;
-            _nullCommand = commandFactory.CreateNullCommand();
-        }
-
-        public string ConnectionString 
-        { 
-            set
-            {
-                _deleteCommand.ConnectionString = value;
-                _uploadCommand.ConnectionString = value;
-                _nullCommand.ConnectionString = value;
-            }
+            _deleteCommand = deleteCommand;
+            _uploadCommand = uploadCommand;
+            _nullCommand = nullCommand;
         }
 
         public async Task PushItemChangesAsync(IEnumerable<ItemChange> itemChanges, string root)
         {
             var tasks = from itemChange in GetItemChangesInRoot(itemChanges, root)
-                        select ExecuteItemChangeOnS3BucketAsync(itemChange);
+                        select ExecuteItemChangeOnDestinationAsync(itemChange);
             await Task.WhenAll(tasks);
         }
 
         private static IEnumerable<ItemChange> GetItemChangesInRoot(IEnumerable<ItemChange> itemChanges, string root)
         {
             return from change in itemChanges
-                   where !string.IsNullOrEmpty(change.Item.Path) && change.Item.Path.StartsWith(root)
+                   where !string.IsNullOrEmpty(change.Item.Path) && change.Item.IsInRoot(root)
                    select new ItemChange()
                    {
                        ChangeType = change.ChangeType,
@@ -53,10 +43,10 @@ namespace SourceControlSync.DataAWS
                    };
         }
 
-        private Task ExecuteItemChangeOnS3BucketAsync(ItemChange itemChange)
+        private Task ExecuteItemChangeOnDestinationAsync(ItemChange itemChange)
         {
             var command = GetItemChangeCommand(itemChange);
-            return command.ExecuteOnS3BucketAsync(itemChange, CancellationToken.None);
+            return command.ExecuteOnDestinationAsync(itemChange, CancellationToken.None);
         }
 
         private IItemCommand GetItemChangeCommand(ItemChange itemChange)
@@ -83,6 +73,22 @@ namespace SourceControlSync.DataAWS
         private static bool IsUploadOperation(ItemChange itemChange)
         {
             return itemChange.NewContent != null;
+        }
+
+        public void Dispose()
+        {
+            if (_deleteCommand != null)
+            {
+                _deleteCommand.Dispose();
+            }
+            if (_uploadCommand != null)
+            {
+                _uploadCommand.Dispose();
+            }
+            if (_nullCommand != null)
+            {
+                _nullCommand.Dispose();
+            }
         }
     }
 }

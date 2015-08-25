@@ -5,9 +5,8 @@ using System.Threading.Tasks;
 
 namespace SourceControlSync.Domain
 {
-    public interface IDestinationRepository
+    public interface IDestinationRepository : IDisposable
     {
-        string ConnectionString { set; }
         Task PushItemChangesAsync(IEnumerable<ItemChange> changes, string root);
     }
 }

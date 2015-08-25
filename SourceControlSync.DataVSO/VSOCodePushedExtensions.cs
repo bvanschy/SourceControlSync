@@ -83,11 +83,6 @@ namespace SourceControlSync.DataVSO
             };
         }
 
-        public static bool IsInRoot(this Microsoft.TeamFoundation.SourceControl.WebApi.GitItem item, string root)
-        {
-            return item.Path.StartsWith(root);
-        }
-
         public static FileContentMetadata ToSync(this Microsoft.TeamFoundation.SourceControl.WebApi.FileContentMetadata metadata)
         {
             var newMetadata = new FileContentMetadata()

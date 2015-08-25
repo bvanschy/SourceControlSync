@@ -1,5 +1,6 @@
 ﻿using Amazon.S3;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using SourceControlSync.Domain;
 using SourceControlSync.Domain.Models;
 using System;
 using System.Collections.Generic;
@@ -24,7 +25,7 @@ namespace SourceControlSync.DataAWS.Tests
             };
             var command = CreateDeleteCommand();
 
-            command.ExecuteOnS3BucketAsync(itemChange, CancellationToken.None).Wait();
+            command.ExecuteOnDestinationAsync(itemChange, CancellationToken.None).Wait();
         }
 
         private static IItemCommand CreateDeleteCommand()
@@ -43,10 +44,7 @@ namespace SourceControlSync.DataAWS.Tests
                 }
             };
 
-            return new DeleteItemCommand()
-            {
-                ConnectionString = connectionStringBuilder.ConnectionString
-            };
+            return new DeleteItemCommand(connectionStringBuilder.ConnectionString);
         }
     }
 }
