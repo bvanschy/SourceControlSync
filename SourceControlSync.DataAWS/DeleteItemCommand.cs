@@ -28,11 +28,11 @@ namespace SourceControlSync.DataAWS
         {
             var request = new DeleteObjectRequest()
             {
-                BucketName = _bucket.BucketName,
+                BucketName = BucketName,
                 Key = itemChange.Item.Path
             };
-            CreateS3Client();
-            return await _s3Client.DeleteObjectAsync(request, token);
+            var s3Client = CreateS3Client();
+            return await s3Client.DeleteObjectAsync(request, token);
         }
     }
 }

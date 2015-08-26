@@ -9,25 +9,31 @@ namespace SourceControlSync.DataAWS
 {
     public abstract class S3ItemCommand : IItemCommand
     {
-        protected readonly Bucket _bucket;
-        protected readonly Credentials _credentials;
+        private readonly Bucket _bucket;
+        private readonly Credentials _credentials;
 
-        protected AmazonS3Client _s3Client;
+        private AmazonS3Client _s3Client;
 
-        public S3ItemCommand(string connectionString)
+        protected S3ItemCommand(string connectionString)
         {
             var connectionStringBuilder = new AWSS3ConnectionStringBuilder(connectionString);
             _bucket = connectionStringBuilder.Bucket;
             _credentials = connectionStringBuilder.Credentials;
         }
 
-        protected void CreateS3Client()
+        protected string BucketName
+        {
+            get { return _bucket.BucketName; }
+        }
+
+        protected AmazonS3Client CreateS3Client()
         {
             if (_s3Client == null)
             {
                 ValidateConnectionParameters();
                 _s3Client = new AmazonS3Client(_credentials.AccessKeyId, _credentials.SecretAccessKey, _bucket.Region);
             }
+            return _s3Client;
         }
 
         private void ValidateConnectionParameters()
@@ -48,7 +54,7 @@ namespace SourceControlSync.DataAWS
 
         public abstract Task ExecuteOnDestinationAsync(ItemChange itemChange, CancellationToken token);
 
-        public void Dispose()
+        public virtual void Dispose()
         {
             if (_s3Client != null)
             {

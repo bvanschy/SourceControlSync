@@ -31,13 +31,13 @@ namespace SourceControlSync.DataAWS
             {
                 var request = new PutObjectRequest()
                 {
-                    BucketName = _bucket.BucketName,
+                    BucketName = BucketName,
                     Key = itemChange.Item.Path,
                     ContentType = itemChange.Item.ContentMetadata.ContentType,
                     InputStream = contentStream
                 };
-                CreateS3Client();
-                return await _s3Client.PutObjectAsync(request, token);
+                var s3Client = CreateS3Client();
+                return await s3Client.PutObjectAsync(request, token);
             }
         }
     }
