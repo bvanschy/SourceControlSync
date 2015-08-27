@@ -1,5 +1,4 @@
 ﻿using SourceControlSync.Domain;
-using SourceControlSync.Domain.Extensions;
 using SourceControlSync.Domain.Models;
 using System;
 using System.Collections.Generic;

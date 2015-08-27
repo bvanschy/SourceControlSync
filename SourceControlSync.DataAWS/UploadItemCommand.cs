@@ -1,5 +1,4 @@
 ﻿using Amazon.S3.Model;
-using SourceControlSync.Domain.Extensions;
 using SourceControlSync.Domain.Models;
 using System;
 using System.Net;

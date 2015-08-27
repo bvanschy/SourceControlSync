@@ -1,6 +1,5 @@
 ﻿using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using SourceControlSync.Domain.Extensions;
 using SourceControlSync.Domain.Models;
 using System.Linq;
 using System.Text;
