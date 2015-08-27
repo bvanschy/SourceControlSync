@@ -9,5 +9,10 @@ namespace SourceControlSync.Domain.Models
     {
         public FileContentMetadata ContentMetadata { get; set; }
         public string Path { get; set; }
+
+        public bool IsInRoot(string root)
+        {
+            return Path.StartsWith(root);
+        }
     }
 }

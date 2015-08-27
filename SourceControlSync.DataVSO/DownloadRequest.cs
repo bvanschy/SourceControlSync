@@ -45,11 +45,12 @@ namespace SourceControlSync.DataVSO
                                     Version = commit.CommitId
                                 },
                                 cancellationToken: token);
-            change.Item.ContentMetadata = item.ContentMetadata.ToSync();
 
             var content = await _httpClient.GetBlobContentAsync(repositoryId, item.ObjectId,
                                 cancellationToken: token);
-            change.NewContent = await change.CreateItemContentAsync(content, token);
+
+            change.Item.ContentMetadata = item.ContentMetadata.ToSync();
+            await change.SetNewContentAsync(content, token);
         }
 
         private void CreateHttpClient()

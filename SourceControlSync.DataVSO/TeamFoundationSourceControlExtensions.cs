@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace SourceControlSync.DataVSO
 {
-    public static class VSOCodePushedExtensions
+    public static class TeamFoundationSourceControlExtensions
     {
         public static Push ToSync(this Microsoft.TeamFoundation.SourceControl.WebApi.GitPush push)
         {

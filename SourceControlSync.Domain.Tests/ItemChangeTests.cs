@@ -10,7 +10,7 @@ using System.Threading;
 namespace SourceControlSync.Domain.Tests
 {
     [TestClass]
-    public class ItemChangeExtensionsTests
+    public class ItemChangeTests
     {
         [TestMethod]
         public void CreateTextStream()
@@ -31,8 +31,7 @@ namespace SourceControlSync.Domain.Tests
                 }
             };
 
-            var stream = itemChange.CreateContentStream();
-
+            using (var stream = itemChange.CreateContentStream())
             using (var streamReader = new StreamReader(stream, itemChange.Item.ContentMetadata.Encoding))
             {
                 Assert.AreEqual("Testing", streamReader.ReadToEnd());
@@ -45,6 +44,10 @@ namespace SourceControlSync.Domain.Tests
             byte[] content = Encoding.UTF8.GetBytes("Testing");
             var itemChange = new ItemChange()
             {
+                Item = new Item()
+                {
+                    ContentMetadata = new FileContentMetadata() { IsBinary = true }
+                },
                 NewContent = new ItemContent()
                 {
                     ContentType = ItemContentType.Base64Encoded,
@@ -52,11 +55,12 @@ namespace SourceControlSync.Domain.Tests
                 }
             };
 
-            var stream = itemChange.CreateContentStream();
-
-            byte[] streamBytes = new byte[16];
-            Assert.AreEqual(7, stream.Read(streamBytes, 0, 16));
-            Assert.IsTrue(content.SequenceEqual(streamBytes.Take(7)));
+            using (var stream = itemChange.CreateContentStream())
+            {
+                byte[] streamBytes = new byte[16];
+                Assert.AreEqual(7, stream.Read(streamBytes, 0, 16));
+                Assert.IsTrue(content.SequenceEqual(streamBytes.Take(7)));
+            }
         }
 
         [TestMethod]
@@ -77,10 +81,10 @@ namespace SourceControlSync.Domain.Tests
             var testData = "Testing";
             using (var memoryStream = new MemoryStream(Encoding.UTF8.GetBytes(testData)))
             {
-                var itemContent = itemChange.CreateItemContentAsync(memoryStream, CancellationToken.None).Result;
+                itemChange.SetNewContentAsync(memoryStream, CancellationToken.None).Wait();
 
-                Assert.AreEqual(ItemContentType.RawText, itemContent.ContentType);
-                Assert.AreEqual(testData, itemContent.Content);
+                Assert.AreEqual(ItemContentType.RawText, itemChange.NewContent.ContentType);
+                Assert.AreEqual(testData, itemChange.NewContent.Content);
             }
         }
 
@@ -101,10 +105,10 @@ namespace SourceControlSync.Domain.Tests
             var testData = Encoding.UTF8.GetBytes("Testing");
             using (var memoryStream = new MemoryStream(testData))
             {
-                var itemContent = itemChange.CreateItemContentAsync(memoryStream, CancellationToken.None).Result;
+                itemChange.SetNewContentAsync(memoryStream, CancellationToken.None).Wait();
 
-                Assert.AreEqual(ItemContentType.Base64Encoded, itemContent.ContentType);
-                Assert.AreEqual(Convert.ToBase64String(testData), itemContent.Content);
+                Assert.AreEqual(ItemContentType.Base64Encoded, itemChange.NewContent.ContentType);
+                Assert.AreEqual(Convert.ToBase64String(testData), itemChange.NewContent.Content);
             }
         }
     }
