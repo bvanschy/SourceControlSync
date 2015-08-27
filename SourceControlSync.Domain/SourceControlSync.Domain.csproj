@@ -42,7 +42,6 @@
     <Compile Include="DestinationRepository.cs" />
     <Compile Include="ChangesCalculator.cs" />
     <Compile Include="ConnectionStringBuilder.cs" />
-    <Compile Include="Extensions\ItemExtensions.cs" />
     <Compile Include="IChangesCalculator.cs" />
     <Compile Include="IDestinationRepository.cs" />
     <Compile Include="IDownloadRequest.cs" />
