@@ -10,28 +10,28 @@ namespace SourceControlSync.WebApi.Factories
 {
     public class UnityRepositoryFactory : IRepositoryFactory
     {
-        private readonly IUnityContainer unityContainer;
+        private readonly IUnityContainer _unityContainer;
 
         public UnityRepositoryFactory(IUnityContainer unityContainer)
         {
-            this.unityContainer = unityContainer;
+            _unityContainer = unityContainer;
         }
 
         public ISourceRepository CreateSourceRepository(string connectionString)
         {
-            var downloadRequest = this.unityContainer.Resolve<IDownloadRequest>(
+            var downloadRequest = _unityContainer.Resolve<IDownloadRequest>(
                 new ParameterOverride("connectionString", connectionString));
-            return this.unityContainer.Resolve<ISourceRepository>(new ParameterOverride("downloadRequest", downloadRequest));
+            return _unityContainer.Resolve<ISourceRepository>(new ParameterOverride("downloadRequest", downloadRequest));
         }
 
         public IDestinationRepository CreateDestinationRepository(string connectionString)
         {
-            var deleteItemCommand = this.unityContainer.Resolve<IItemCommand>("deleteItemCommand",
+            var deleteItemCommand = _unityContainer.Resolve<IItemCommand>("deleteItemCommand",
                 new ParameterOverride("connectionString", connectionString));
-            var uploadItemCommand = this.unityContainer.Resolve<IItemCommand>("uploadItemCommand",
+            var uploadItemCommand = _unityContainer.Resolve<IItemCommand>("uploadItemCommand",
                 new ParameterOverride("connectionString", connectionString));
-            var nullItemCommand = this.unityContainer.Resolve<IItemCommand>("nullItemCommand");
-            return this.unityContainer.Resolve<IDestinationRepository>(
+            var nullItemCommand = _unityContainer.Resolve<IItemCommand>("nullItemCommand");
+            return _unityContainer.Resolve<IDestinationRepository>(
                 new ParameterOverride("deleteCommand", deleteItemCommand),
                 new ParameterOverride("uploadCommand", uploadItemCommand),
                 new ParameterOverride("nullCommand", nullItemCommand)
