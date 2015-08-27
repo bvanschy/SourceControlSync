@@ -21,28 +21,74 @@ namespace SourceControlSync.WebApi.Tests
         [TestMethod]
         public void VSOControllerPost()
         {
-            var push = CreateVSOCodePushedRequest("5597f65ce55386a771e4bf6fa190b5a26c0f5ce5", "2015-08-16T04:28:13Z");
-            var fakeSourceRepository = new FakeSourceRepository();
-            var fakeChangesCalculator = new FakeChangesCalculator();
-            var fakeDestinationRepository = new FakeDestinationRepository();
-            var controller = new VSOController(new FakeRepositoryFactory(fakeSourceRepository, fakeDestinationRepository), fakeChangesCalculator);
-            controller.Request = new HttpRequestMessage(HttpMethod.Post, "");
-            controller.Request.Headers.Add(VSOController.HEADER_SOURCE_CONNECTIONSTRING, "SourceConnectioniString");
-            controller.Request.Headers.Add(VSOController.HEADER_DESTINATION_CONNECTIONSTRING, "DestinationConnectionString");
-            controller.Request.Headers.Add(VSOController.HEADER_ROOT, "/");
+            var pushEvent = CreateVSOCodePushedRequest("5597f65ce55386a771e4bf6fa190b5a26c0f5ce5", "2015-08-16T04:28:13Z");
 
-            var result = controller.PostAsync(push, CancellationToken.None).Result;
+            Push pushPassedToSource = null;
+            string rootPassedToSource = null;
+            var fakeSourceRepository = new SourceControlSync.Domain.Fakes.StubISourceRepository()
+            {
+                DownloadChangesAsyncPushStringCancellationToken = (push, root, token) =>
+                {
+                    pushPassedToSource = push;
+                    rootPassedToSource = root;
+                    foreach (var commit in push.Commits)
+                    {
+                        commit.Changes = Enumerable.Empty<ItemChange>();
+                    }
+                    return Task.FromResult(0);
+                }
+            };
 
-            Assert.IsInstanceOfType(result, typeof(OkResult));
-            Assert.AreEqual(Guid.Parse("0ad49569-db8b-4a8a-b5cc-f7ff009949c8"), fakeSourceRepository.PushPassed.Repository.Id);
-            Assert.AreEqual("5597f65ce55386a771e4bf6fa190b5a26c0f5ce5", fakeSourceRepository.PushPassed.Commits.Single().CommitId);
-            Assert.AreEqual("/", fakeSourceRepository.RootPassed);
-            Assert.IsNotNull(fakeSourceRepository.PushPassed.Commits.Single().Changes);
+            IEnumerable<Commit> commitsPassedToCalculator = null;
+            IEnumerable<ItemChange> changesReturnedByCalculator = null;
+            var fakeChangesCalculator = new SourceControlSync.Domain.Fakes.StubIChangesCalculator()
+            {
+                CalculateItemChangesIEnumerableOfCommit = (commits) => 
+                {
+                    commitsPassedToCalculator = commits;
+                    changesReturnedByCalculator = commits.SelectMany(commit => commit.Changes).ToList();
+                },
+                ItemChangesGet = () => { return changesReturnedByCalculator; }
+            };
 
-            Assert.AreEqual("5597f65ce55386a771e4bf6fa190b5a26c0f5ce5", fakeChangesCalculator.CommitsPassed.Single().CommitId);
+            IEnumerable<ItemChange> changesPassedToDestination = null;
+            string rootPassedToDestination = null;
+            var fakeDestinationRepository = new SourceControlSync.Domain.Fakes.StubIDestinationRepository()
+            {
+                PushItemChangesAsyncIEnumerableOfItemChangeString = (changes, root) =>
+                {
+                    changesPassedToDestination = changes;
+                    rootPassedToDestination = root;
+                    return Task.FromResult(0);
+                }
+            };
 
-            Assert.AreSame(fakeChangesCalculator.ItemChanges, fakeDestinationRepository.ChangesPassed);
-            Assert.AreEqual("/", fakeDestinationRepository.RootPassed);
+            var fakeRepositoryFactory = new SourceControlSync.Domain.Fakes.StubIRepositoryFactory()
+            {
+                CreateSourceRepositoryString = (connectionString) => { return fakeSourceRepository; },
+                CreateDestinationRepositoryString = (connectionString) => { return fakeDestinationRepository; }
+            };
+
+            using (var controller = new VSOController(fakeRepositoryFactory, fakeChangesCalculator))
+            {
+                controller.Request = new HttpRequestMessage(HttpMethod.Post, "");
+                controller.Request.Headers.Add(VSOController.HEADER_SOURCE_CONNECTIONSTRING, "SourceConnectioniString");
+                controller.Request.Headers.Add(VSOController.HEADER_DESTINATION_CONNECTIONSTRING, "DestinationConnectionString");
+                controller.Request.Headers.Add(VSOController.HEADER_ROOT, "/");
+
+                var result = controller.PostAsync(pushEvent, CancellationToken.None).Result;
+
+                Assert.IsInstanceOfType(result, typeof(OkResult));
+                Assert.AreEqual(Guid.Parse("0ad49569-db8b-4a8a-b5cc-f7ff009949c8"), pushPassedToSource.Repository.Id);
+                Assert.AreEqual("5597f65ce55386a771e4bf6fa190b5a26c0f5ce5", pushPassedToSource.Commits.Single().CommitId);
+                Assert.AreEqual("/", rootPassedToSource);
+                Assert.IsNotNull(pushPassedToSource.Commits.Single().Changes);
+
+                Assert.AreEqual("5597f65ce55386a771e4bf6fa190b5a26c0f5ce5", commitsPassedToCalculator.Single().CommitId);
+
+                Assert.AreSame(changesReturnedByCalculator, changesPassedToDestination);
+                Assert.AreEqual("/", rootPassedToDestination);
+            }
         }
 
         [TestMethod]
@@ -77,80 +123,6 @@ namespace SourceControlSync.WebApi.Tests
                 }
             };
             return push;
-        }
-
-        private class FakeRepositoryFactory : IRepositoryFactory
-        {
-            private readonly ISourceRepository _sourceRepository;
-            private readonly IDestinationRepository _destinationRepository;
-
-            public FakeRepositoryFactory(ISourceRepository sourceRepository, IDestinationRepository destinationRepository)
-            {
-                _sourceRepository = sourceRepository;
-                _destinationRepository = destinationRepository;
-            }
-
-            public ISourceRepository CreateSourceRepository(string connectionString)
-            {
-                return _sourceRepository;
-            }
-
-            public IDestinationRepository CreateDestinationRepository(string connectionString)
-            {
-                return _destinationRepository;
-            }
-        }
-
-        private class FakeSourceRepository : ISourceRepository
-        {
-            public Push PushPassed { get; set; }
-            public string RootPassed { get; set; }
-
-            public Task DownloadChangesAsync(Push push, string root, CancellationToken token)
-            {
-                PushPassed = push;
-                RootPassed = root;
-
-                foreach (var commit in push.Commits)
-                {
-                    commit.Changes = Enumerable.Empty<ItemChange>();
-                }
-
-                return Task.FromResult(0);
-            }
-
-            public void Dispose()
-            {
-            }
-        }
-
-        private class FakeDestinationRepository : IDestinationRepository
-        {
-            public IEnumerable<ItemChange> ChangesPassed { get; set; }
-            public string RootPassed { get; set; }
-
-            public Task PushItemChangesAsync(IEnumerable<ItemChange> changes, string root)
-            {
-                ChangesPassed = changes;
-                RootPassed = root;
-                return Task.FromResult(0);
-            }
-
-            public void Dispose()
-            {
-            }
-        }
-
-        private class FakeChangesCalculator : IChangesCalculator
-        {
-            public IEnumerable<Commit> CommitsPassed { get; set; }
-            public IEnumerable<ItemChange> ItemChanges { get; set; }
-
-            public void CalculateItemChanges(IEnumerable<Commit> commits)
-            {
-                CommitsPassed = commits;
-                ItemChanges = commits.SelectMany(c => c.Changes).ToList();
-            }
         }
     }
 }

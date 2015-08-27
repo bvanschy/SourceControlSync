@@ -29,13 +29,21 @@ namespace SourceControlSync.Domain.Tests
                     }
                 }
             };
-            var fakeCommand = new FakeCommand();
+            ItemChange itemChanged = null;
+            var fakeCommand = new Fakes.StubIItemCommand()
+            {
+                ExecuteOnDestinationAsyncItemChangeCancellationToken = (change, token) => 
+                {
+                    itemChanged = change;
+                    return Task.FromResult(0); 
+                }
+            };
             var repo = new DestinationRepository(fakeCommand, null, null);
 
             repo.PushItemChangesAsync(itemChanges, "/").Wait();
 
-            Assert.IsNotNull(fakeCommand.ItemChangeExecuted);
-            Assert.AreEqual("test/test.txt", fakeCommand.ItemChangeExecuted.Item.Path);
+            Assert.IsNotNull(itemChanged);
+            Assert.AreEqual("test/test.txt", itemChanged.Item.Path);
         }
 
         [TestMethod]
@@ -62,14 +70,22 @@ namespace SourceControlSync.Domain.Tests
                     }
                 }
             };
-            var fakeCommand = new FakeCommand();
+            ItemChange itemChanged = null;
+            var fakeCommand = new Fakes.StubIItemCommand()
+            {
+                ExecuteOnDestinationAsyncItemChangeCancellationToken = (change, token) =>
+                {
+                    itemChanged = change;
+                    return Task.FromResult(0);
+                }
+            };
             var repo = new DestinationRepository(null, fakeCommand, null);
 
             repo.PushItemChangesAsync(itemChanges, "/").Wait();
 
-            Assert.IsNotNull(fakeCommand.ItemChangeExecuted);
-            Assert.AreEqual("test/test.txt", fakeCommand.ItemChangeExecuted.Item.Path);
-            Assert.AreSame(itemChanges.Single().NewContent, fakeCommand.ItemChangeExecuted.NewContent);
+            Assert.IsNotNull(itemChanged);
+            Assert.AreEqual("test/test.txt", itemChanged.Item.Path);
+            Assert.AreSame(itemChanges.Single().NewContent, itemChanged.NewContent);
         }
 
         [TestMethod]
@@ -96,14 +112,22 @@ namespace SourceControlSync.Domain.Tests
                     }
                 }
             };
-            var fakeCommand = new FakeCommand();
+            ItemChange itemChanged = null;
+            var fakeCommand = new Fakes.StubIItemCommand()
+            {
+                ExecuteOnDestinationAsyncItemChangeCancellationToken = (change, token) =>
+                {
+                    itemChanged = change;
+                    return Task.FromResult(0);
+                }
+            };
             var repo = new DestinationRepository(null, fakeCommand, null);
 
             repo.PushItemChangesAsync(itemChanges, "/").Wait();
 
-            Assert.IsNotNull(fakeCommand.ItemChangeExecuted);
-            Assert.AreEqual("test/test.txt", fakeCommand.ItemChangeExecuted.Item.Path);
-            Assert.AreSame(itemChanges.Single().NewContent, fakeCommand.ItemChangeExecuted.NewContent);
+            Assert.IsNotNull(itemChanged);
+            Assert.AreEqual("test/test.txt", itemChanged.Item.Path);
+            Assert.AreSame(itemChanges.Single().NewContent, itemChanged.NewContent);
         }
 
         [TestMethod]
@@ -130,14 +154,22 @@ namespace SourceControlSync.Domain.Tests
                     }
                 }
             };
-            var fakeCommand = new FakeCommand();
+            ItemChange itemChanged = null;
+            var fakeCommand = new Fakes.StubIItemCommand()
+            {
+                ExecuteOnDestinationAsyncItemChangeCancellationToken = (change, token) =>
+                {
+                    itemChanged = change;
+                    return Task.FromResult(0);
+                }
+            };
             var repo = new DestinationRepository(null, fakeCommand, null);
 
             repo.PushItemChangesAsync(itemChanges, "/").Wait();
 
-            Assert.IsNotNull(fakeCommand.ItemChangeExecuted);
-            Assert.AreEqual("test/test.txt", fakeCommand.ItemChangeExecuted.Item.Path);
-            Assert.AreSame(itemChanges.Single().NewContent, fakeCommand.ItemChangeExecuted.NewContent);
+            Assert.IsNotNull(itemChanged);
+            Assert.AreEqual("test/test.txt", itemChanged.Item.Path);
+            Assert.AreSame(itemChanges.Single().NewContent, itemChanged.NewContent);
         }
 
         [TestMethod]
@@ -154,30 +186,21 @@ namespace SourceControlSync.Domain.Tests
                     }
                 }
             };
-            var fakeCommand = new FakeCommand();
+            ItemChange itemChanged = null;
+            var fakeCommand = new Fakes.StubIItemCommand()
+            {
+                ExecuteOnDestinationAsyncItemChangeCancellationToken = (change, token) =>
+                {
+                    itemChanged = change;
+                    return Task.FromResult(0);
+                }
+            };
             var repo = new DestinationRepository(null, null, fakeCommand);
 
             repo.PushItemChangesAsync(itemChanges, "/").Wait();
 
-            Assert.IsNotNull(fakeCommand.ItemChangeExecuted);
-            Assert.AreEqual("test/test.txt", fakeCommand.ItemChangeExecuted.Item.Path);
-        }
-
-        private class FakeCommand : IItemCommand
-        {
-            public ItemChange ItemChangeExecuted { get; set; }
-
-            public string ConnectionString { get; set; }
-
-            public Task ExecuteOnDestinationAsync(ItemChange itemChange, CancellationToken token)
-            {
-                ItemChangeExecuted = itemChange;
-                return Task.FromResult(0);
-            }
-
-            public void Dispose()
-            {
-            }
+            Assert.IsNotNull(itemChanged);
+            Assert.AreEqual("test/test.txt", itemChanged.Item.Path);
         }
     }
 }

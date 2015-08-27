@@ -18,19 +18,47 @@ namespace SourceControlSync.Domain.Tests
         [TestMethod]
         public void DownloadCommitWithChanges()
         {
-            var push = CreatePushRequest("1b1859c414e800d24036b9ee547d1530431ae055");
-            var repo = CreateSourceRepository();
+            var commitId = "1b1859c414e800d24036b9ee547d1530431ae055";
+            var push = CreatePushRequest(commitId);
+            var fakeChanges = new ItemChange[] { new ItemChange() { Item = new Item() { Path = "/index.html" } } };
+            var fakeDownloadRequest = new Fakes.StubIDownloadRequest()
+            {
+                DownloadChangesInCommitAsyncCommitGuidCancellationToken = (commit, repositoryId, token) =>
+                {
+                    Assert.AreEqual(commitId, commit.CommitId);
+                    commit.Changes = fakeChanges;
+                    return Task.FromResult(0);
+                }
+            };
+            var repo = new SourceRepository(fakeDownloadRequest);
 
             repo.DownloadChangesAsync(push, "/", CancellationToken.None).Wait();
 
-            Assert.AreEqual(2, push.Commits.Single().Changes.Count());
+            Assert.IsTrue(fakeChanges.SequenceEqual(push.Commits.Single().Changes));
         }
 
         [TestMethod]
         public void DownloadCommitWithAddedTextItem()
         {
             var push = CreatePushRequest("5597f65ce55386a771e4bf6fa190b5a26c0f5ce5");
-            var repo = CreateSourceRepository();
+            var fakeDownloadRequest = new Fakes.StubIDownloadRequest()
+            {
+                DownloadChangesInCommitAsyncCommitGuidCancellationToken = (commit, repositoryId, token) =>
+                {
+                    commit.Changes = new ItemChange[]
+                        {
+                            new ItemChange() { ChangeType = ItemChangeType.Add, Item = new Item() { Path = "/index.html" }}
+                        };
+                    return Task.FromResult(0);
+                },
+                DownloadItemAndContentInCommitAsyncItemChangeCommitGuidCancellationToken = (itemChange, commit, repositoryId, token) =>
+                {
+                    itemChange.Item.ContentMetadata = CreateTextContentMetadataTestData();
+                    itemChange.NewContent = CreateTextContentTestData();
+                    return Task.FromResult(0);
+                }
+            };
+            var repo = new SourceRepository(fakeDownloadRequest);
 
             repo.DownloadChangesAsync(push, "/", CancellationToken.None).Wait();
 
@@ -49,7 +77,28 @@ namespace SourceControlSync.Domain.Tests
         public void DownloadCommitWithRenamedTextItem()
         {
             var push = CreatePushRequest("de3e7a550c40fe75085d11e81d5770bc5b0dd33c");
-            var repo = CreateSourceRepository();
+            var fakeDownloadRequest = new Fakes.StubIDownloadRequest()
+            {
+                DownloadChangesInCommitAsyncCommitGuidCancellationToken = (commit, repositoryId, token) =>
+                {
+                    commit.Changes = new ItemChange[]
+                        {
+                            new ItemChange() { ChangeType = ItemChangeType.Rename, Item = new Item() { Path = "/index.html" }},
+                            new ItemChange() { ChangeType = ItemChangeType.Delete | ItemChangeType.SourceRename, Item = new Item() { Path = "/index2.html" }}
+                        };
+                    return Task.FromResult(0);
+                },
+                DownloadItemAndContentInCommitAsyncItemChangeCommitGuidCancellationToken = (itemChange, commit, repositoryId, token) =>
+                {
+                    if (itemChange.Item.Path == "/index.html")
+                    {
+                        itemChange.Item.ContentMetadata = CreateTextContentMetadataTestData();
+                        itemChange.NewContent = CreateTextContentTestData();
+                    }
+                    return Task.FromResult(0);
+                }
+            };
+            var repo = new SourceRepository(fakeDownloadRequest);
 
             repo.DownloadChangesAsync(push, "/", CancellationToken.None).Wait();
 
@@ -70,7 +119,28 @@ namespace SourceControlSync.Domain.Tests
         public void DownloadCommitWithRenamedAndEditedItem()
         {
             var push = CreatePushRequest("a620293e7300c85234c5109e9cd9bb056942fbd6");
-            var repo = CreateSourceRepository();
+            var fakeDownloadRequest = new Fakes.StubIDownloadRequest()
+            {
+                DownloadChangesInCommitAsyncCommitGuidCancellationToken = (commit, repositoryId, token) =>
+                {
+                    commit.Changes = new ItemChange[]
+                        {
+                            new ItemChange() { ChangeType = ItemChangeType.Delete | ItemChangeType.SourceRename, Item = new Item() { Path = "/index.html" }},
+                            new ItemChange() { ChangeType = ItemChangeType.Edit | ItemChangeType.Rename, Item = new Item() { Path = "/index3.html" }}
+                        };
+                    return Task.FromResult(0);
+                },
+                DownloadItemAndContentInCommitAsyncItemChangeCommitGuidCancellationToken = (itemChange, commit, repositoryId, token) =>
+                {
+                    if (itemChange.Item.Path == "/index3.html")
+                    {
+                        itemChange.Item.ContentMetadata = CreateTextContentMetadataTestData();
+                        itemChange.NewContent = CreateTextContentTestData();
+                    }
+                    return Task.FromResult(0);
+                }
+            };
+            var repo = new SourceRepository(fakeDownloadRequest);
 
             repo.DownloadChangesAsync(push, "/", CancellationToken.None).Wait();
 
@@ -91,7 +161,24 @@ namespace SourceControlSync.Domain.Tests
         public void DownloadCommitWithAddedBinaryItem()
         {
             var push = CreatePushRequest("b6f447775f71a092854a2555eea084bd6d19958e");
-            var repo = CreateSourceRepository();
+            var fakeDownloadRequest = new Fakes.StubIDownloadRequest()
+            {
+                DownloadChangesInCommitAsyncCommitGuidCancellationToken = (commit, repositoryId, token) =>
+                {
+                    commit.Changes = new ItemChange[]
+                        {
+                            new ItemChange() { ChangeType = ItemChangeType.Add, Item = new Item() { Path = "/favicon.ico" }}
+                        };
+                    return Task.FromResult(0);
+                },
+                DownloadItemAndContentInCommitAsyncItemChangeCommitGuidCancellationToken = (itemChange, commit, repositoryId, token) =>
+                {
+                    itemChange.Item.ContentMetadata = CreateBinaryContentMetadataTestData();
+                    itemChange.NewContent = CreateBinaryContentTestData();
+                    return Task.FromResult(0);
+                }
+            };
+            var repo = new SourceRepository(fakeDownloadRequest);
 
             repo.DownloadChangesAsync(push, "/", CancellationToken.None).Wait();
 
@@ -119,7 +206,20 @@ namespace SourceControlSync.Domain.Tests
                 { "5597f65ce55386a771e4bf6fa190b5a26c0f5ce5", "2015-08-16T04:28:13Z" }
             };
             var push = CreatePushRequest(commits);
-            var repo = CreateSourceRepository();
+            var changesByCommit = GetChangesTestData();
+            var fakeDownloadRequest = new Fakes.StubIDownloadRequest()
+            {
+                DownloadChangesInCommitAsyncCommitGuidCancellationToken = (commit, repositoryId, token) =>
+                {
+                    commit.Changes = changesByCommit[commit.CommitId];
+                    return Task.FromResult(0);
+                },
+                DownloadItemAndContentInCommitAsyncItemChangeCommitGuidCancellationToken = (itemChange, commit, repositoryId, token) =>
+                {
+                    return Task.FromResult(0);
+                }
+            };
+            var repo = new SourceRepository(fakeDownloadRequest);
 
             repo.DownloadChangesAsync(push, "/", CancellationToken.None).Wait();
 
@@ -127,10 +227,22 @@ namespace SourceControlSync.Domain.Tests
         }
 
         [TestMethod]
-        public void DownloadNoChanges()
+        public void DownloadNoChangesInRoot()
         {
             var push = CreatePushRequest("1b1859c414e800d24036b9ee547d1530431ae055");
-            var repo = CreateSourceRepository();
+            var fakeDownloadRequest = new Fakes.StubIDownloadRequest()
+            {
+                DownloadChangesInCommitAsyncCommitGuidCancellationToken = (commit, repositoryId, token) =>
+                {
+                    commit.Changes = new ItemChange[] 
+                        { 
+                            new ItemChange() { ChangeType = ItemChangeType.Edit, Item = new Item() { Path = "/index.html" }},
+                            new ItemChange() { ChangeType = ItemChangeType.Add, Item = new Item() { Path = "/index2.html" }}
+                        };
+                    return Task.FromResult(0);
+                }
+            };
+            var repo = new SourceRepository(fakeDownloadRequest);
 
             repo.DownloadChangesAsync(push, "/fake/", CancellationToken.None).Wait();
 
@@ -142,7 +254,7 @@ namespace SourceControlSync.Domain.Tests
             var push = new Push()
             {
                 Commits = new Commit[] { new Commit() { CommitId = commitId } },
-                Repository = new Repository() { Id = new Guid("0ad49569-db8b-4a8a-b5cc-f7ff009949c8") }
+                Repository = new Repository() { Id = Guid.NewGuid() }
             };
             return push;
         }
@@ -159,22 +271,14 @@ namespace SourceControlSync.Domain.Tests
                         Date = DateTime.ParseExact(c.Value, "yyyy'-'MM'-'dd'T'HH':'mm':'ss'Z'", CultureInfo.InvariantCulture) 
                     }
                 }).ToArray(),
-                Repository = new Repository() { Id = new Guid("0ad49569-db8b-4a8a-b5cc-f7ff009949c8") }
+                Repository = new Repository() { Id = Guid.NewGuid() }
             };
             return push;
         }
 
-        private static ISourceRepository CreateSourceRepository()
+        private static IDictionary<string, IEnumerable<ItemChange>> GetChangesTestData()
         {
-            return new SourceRepository(new FakeDownloadRequest());
-        }
-
-        private class FakeDownloadRequest : IDownloadRequest
-        {
-
-            public Task DownloadChangesInCommitAsync(Commit commit, Guid repositoryId, CancellationToken token)
-            {
-                var commits = new Dictionary<string, IEnumerable<ItemChange>>()
+            return new Dictionary<string, IEnumerable<ItemChange>>()
                 {
                     {
                         "5597f65ce55386a771e4bf6fa190b5a26c0f5ce5", 
@@ -229,45 +333,43 @@ namespace SourceControlSync.Domain.Tests
                         }
                     }
                 };
-                commit.Changes = commits[commit.CommitId];
-                return Task.FromResult(0);
-            }
+        }
 
-            public Task DownloadItemAndContentInCommitAsync(ItemChange change, Commit commit, Guid repositoryId, CancellationToken token)
+        private static FileContentMetadata CreateTextContentMetadataTestData()
+        {
+            return new FileContentMetadata()
             {
-                if (change.Item.Path.EndsWith(".html"))
-                {
-                    change.Item.ContentMetadata = new FileContentMetadata()
-                    {
-                        ContentType = "text/html",
-                        IsBinary = false,
-                        Encoding = Encoding.UTF8
-                    };
-                    change.NewContent = new ItemContent()
-                    {
-                        ContentType = ItemContentType.RawText,
-                        Content = "Testing"
-                    };
-                }
-                else if (change.Item.Path.EndsWith(".ico"))
-                {
-                    change.Item.ContentMetadata = new FileContentMetadata()
-                    {
-                        ContentType = "image/x-icon",
-                        IsBinary = true
-                    };
-                    change.NewContent = new ItemContent()
-                    {
-                        ContentType = ItemContentType.Base64Encoded,
-                        Content = Convert.ToBase64String(Encoding.UTF8.GetBytes("Testing"))
-                    };
-                }
-                return Task.FromResult(0);
-            }
+                ContentType = "text/html",
+                IsBinary = false,
+                Encoding = Encoding.UTF8
+            };
+        }
 
-            public void Dispose()
+        private static FileContentMetadata CreateBinaryContentMetadataTestData()
+        {
+            return new FileContentMetadata()
             {
-            }
+                ContentType = "image/x-icon",
+                IsBinary = true
+            };
+        }
+
+        private static ItemContent CreateTextContentTestData()
+        {
+            return new ItemContent()
+            {
+                ContentType = ItemContentType.RawText,
+                Content = "Testing"
+            };
+        }
+
+        private static ItemContent CreateBinaryContentTestData()
+        {
+            return new ItemContent()
+            {
+                ContentType = ItemContentType.Base64Encoded,
+                Content = Convert.ToBase64String(Encoding.UTF8.GetBytes("Testing"))
+            };
         }
     }
 }

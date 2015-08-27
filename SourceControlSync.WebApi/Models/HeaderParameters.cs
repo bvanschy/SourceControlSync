@@ -8,23 +8,20 @@ namespace SourceControlSync.WebApi.Models
 {
     public class HeaderParameters
     {
-        private IDictionary<string, string> _headerValues;
+        private readonly HttpRequestHeaders _headers;
+        private readonly IEnumerable<string> _headerNames;
 
         public HeaderParameters(HttpRequestHeaders headers, params string[] names)
         {
-            _headerValues = names.ToDictionary(
-                name => name, 
-                name => GetHeaderValue(headers, name));
+            _headers = headers;
+            _headerNames = names.ToArray();
         }
 
         public string this[string name]
         {
             get
             {
-                if (_headerValues.ContainsKey(name))
-                    return _headerValues[name];
-                else
-                    return null;
+                return GetValue(name);
             }
         }
 
@@ -32,18 +29,14 @@ namespace SourceControlSync.WebApi.Models
         {
             get
             {
-                return _headerValues.Values.Any(value => value == null);
+                return _headerNames.Any(name => !_headers.Contains(name));
             }
         }
 
-        private static string GetHeaderValue(HttpRequestHeaders headers, string headerName)
+        private string GetValue(string headerName)
         {
-            IEnumerable<string> values;
-            if (headers.TryGetValues(headerName, out values))
-            {
-                return values.FirstOrDefault();
-            }
-            return null;
+            var values = _headers.GetValues(headerName);
+            return values.FirstOrDefault();
         }
     }
 }

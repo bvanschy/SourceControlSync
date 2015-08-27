@@ -11,10 +11,6 @@ namespace SourceControlSync.DataVSO
     {
         public static Push ToSync(this Microsoft.TeamFoundation.SourceControl.WebApi.GitPush push)
         {
-            if (push == null)
-            {
-                throw new ArgumentNullException("push");
-            }
             return new Push()
             {
                 Commits = push.Commits != null ? push.Commits.ToSync() : null,

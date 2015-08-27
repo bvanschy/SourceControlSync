@@ -50,11 +50,6 @@ namespace SourceControlSync.Domain.Extensions
 
         public static async Task<ItemContent> CreateItemContentAsync(this ItemChange change, Stream content, CancellationToken token)
         {
-            if (content == null)
-            {
-                throw new ArgumentNullException("content");
-            }
-
             if (change.Item.ContentMetadata.IsBinary)
             {
                 return await CreateEncodedBinaryItemContentAsync(content, token);
