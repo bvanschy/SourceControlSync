@@ -21,6 +21,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SourceControlSync.DataAWS.T
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{4C108C08-1417-480A-944F-C0683099EFD4}"
 	ProjectSection(SolutionItems) = preProject
+		local.runsettings = local.runsettings
 		test.runsettings = test.runsettings
 	EndProjectSection
 EndProject
