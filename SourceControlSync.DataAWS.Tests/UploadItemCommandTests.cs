@@ -12,8 +12,9 @@ namespace SourceControlSync.DataAWS.Tests
     [TestClass]
     public class UploadItemCommandTests
     {
+        public TestContext TestContext { get; set; }
+
         [TestMethod]
-        [Ignore]
         public void UploadBlob()
         {
             var itemChange = new ItemChange()
@@ -39,23 +40,19 @@ namespace SourceControlSync.DataAWS.Tests
             command.ExecuteOnDestinationAsync(itemChange, CancellationToken.None).Wait();
         }
 
-        private static IItemCommand CreateUploadCommand()
+        private IItemCommand CreateUploadCommand()
         {
-            var connectionStringBuilder = new AWSS3ConnectionStringBuilder()
+            var bucket = new Bucket()
             {
-                Bucket = new Bucket()
-                {
-                    RegionSystemName = ConfigurationManager.AppSettings["AWS-SystemName"],
-                    BucketName = ConfigurationManager.AppSettings["AWS-BucketName"]
-                },
-                Credentials = new Credentials()
-                {
-                    AccessKeyId = ConfigurationManager.AppSettings["AWS-AccessKeyId"],
-                    SecretAccessKey = ConfigurationManager.AppSettings["AWS-SecretAccessKey"]
-                }
+                RegionSystemName = TestContext.Properties["AWSRegionSystemName"] as string,
+                BucketName = TestContext.Properties["AWSBucketName"] as string
             };
-
-            return new UploadItemCommand(connectionStringBuilder.ConnectionString);
+            var credentials = new Credentials()
+            {
+                AccessKeyId = TestContext.Properties["AWSAccessKeyId"] as string,
+                SecretAccessKey = TestContext.Properties["AWSSecretAccessKey"] as string
+            };
+            return new UploadItemCommand(bucket, credentials);
         }
     }
 }

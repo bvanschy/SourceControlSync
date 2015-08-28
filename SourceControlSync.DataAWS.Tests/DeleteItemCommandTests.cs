@@ -12,8 +12,9 @@ namespace SourceControlSync.DataAWS.Tests
     [TestClass]
     public class DeleteItemCommandTests
     {
+        public TestContext TestContext { get; set; }
+
         [TestMethod]
-        [Ignore]
         public void DeleteBlob()
         {
             var itemChange = new ItemChange()
@@ -29,23 +30,19 @@ namespace SourceControlSync.DataAWS.Tests
             command.ExecuteOnDestinationAsync(itemChange, CancellationToken.None).Wait();
         }
 
-        private static IItemCommand CreateDeleteCommand()
+        private IItemCommand CreateDeleteCommand()
         {
-            var connectionStringBuilder = new AWSS3ConnectionStringBuilder()
+            var bucket = new Bucket()
             {
-                Bucket = new Bucket()
-                {
-                    RegionSystemName = ConfigurationManager.AppSettings["AWS-SystemName"],
-                    BucketName = ConfigurationManager.AppSettings["AWS-BucketName"]
-                },
-                Credentials = new Credentials()
-                {
-                    AccessKeyId = ConfigurationManager.AppSettings["AWS-AccessKeyId"],
-                    SecretAccessKey = ConfigurationManager.AppSettings["AWS-SecretAccessKey"]
-                }
+                RegionSystemName = TestContext.Properties["AWSRegionSystemName"] as string,
+                BucketName = TestContext.Properties["AWSBucketName"] as string
             };
-
-            return new DeleteItemCommand(connectionStringBuilder.ConnectionString);
+            var credentials = new Credentials()
+            {
+                AccessKeyId = TestContext.Properties["AWSAccessKeyId"] as string,
+                SecretAccessKey = TestContext.Properties["AWSSecretAccessKey"] as string
+            };
+            return new DeleteItemCommand(bucket, credentials);
         }
     }
 }

@@ -14,6 +14,11 @@ namespace SourceControlSync.DataAWS
         {
         }
 
+        public DeleteItemCommand(Bucket bucket, Credentials credentials)
+            : base(bucket, credentials)
+        {
+        }
+
         public override async Task ExecuteOnDestinationAsync(ItemChange itemChange, CancellationToken token)
         {
             var response = await DeleteItemAsync(itemChange, token);

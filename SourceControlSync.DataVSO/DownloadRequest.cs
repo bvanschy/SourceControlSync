@@ -24,6 +24,12 @@ namespace SourceControlSync.DataVSO
             _credentials = connectionStringBuilder.Credentials;
         }
 
+        public DownloadRequest(string baseUrl, Credentials credentials)
+        {
+            _baseUrl = new Uri(baseUrl);
+            _credentials = credentials;
+        }
+
         public async Task DownloadChangesInCommitAsync(Commit commit, Guid repositoryId, CancellationToken token)
         {
             CreateHttpClient();

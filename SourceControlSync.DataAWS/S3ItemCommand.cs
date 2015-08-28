@@ -21,6 +21,12 @@ namespace SourceControlSync.DataAWS
             _credentials = connectionStringBuilder.Credentials;
         }
 
+        protected S3ItemCommand(Bucket bucket, Credentials credentials)
+        {
+            _bucket = bucket;
+            _credentials = credentials;
+        }
+
         protected string BucketName
         {
             get { return _bucket.BucketName; }

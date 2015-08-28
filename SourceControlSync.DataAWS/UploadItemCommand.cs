@@ -14,6 +14,11 @@ namespace SourceControlSync.DataAWS
         {
         }
 
+        public UploadItemCommand(Bucket bucket, Credentials credentials)
+            : base(bucket, credentials)
+        {
+        }
+
         public override async Task ExecuteOnDestinationAsync(ItemChange itemChange, CancellationToken token)
         {
             var response = await UploadItemAsync(itemChange, token);

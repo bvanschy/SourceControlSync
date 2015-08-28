@@ -12,8 +12,9 @@ namespace SourceControlSync.DataVSO.Tests
     [TestClass]
     public class DownloadRequestTests
     {
+        public TestContext TestContext { get; set; }
+
         [TestMethod]
-        [Ignore]
         public void GetChanges()
         {
             var repo = CreateDownloadRequest();
@@ -31,7 +32,6 @@ namespace SourceControlSync.DataVSO.Tests
         }
 
         [TestMethod]
-        [Ignore]
         [ExpectedException(typeof(TaskCanceledException))]
         public void GetChangesWhenCanceled()
         {
@@ -53,7 +53,6 @@ namespace SourceControlSync.DataVSO.Tests
         }
 
         [TestMethod]
-        [Ignore]
         public void GetTextItemAndBlob()
         {
             var repo = CreateDownloadRequest();
@@ -74,7 +73,6 @@ namespace SourceControlSync.DataVSO.Tests
         }
 
         [TestMethod]
-        [Ignore]
         public void GetBinaryItemAndBlob()
         {
             var repo = CreateDownloadRequest();
@@ -94,7 +92,6 @@ namespace SourceControlSync.DataVSO.Tests
         }
 
         [TestMethod]
-        [Ignore]
         [ExpectedException(typeof(TaskCanceledException))]
         public void GetTextItemAndBlobWhenCanceled()
         {
@@ -116,18 +113,15 @@ namespace SourceControlSync.DataVSO.Tests
             }
         }
 
-        private static IDownloadRequest CreateDownloadRequest()
+        private IDownloadRequest CreateDownloadRequest()
         {
-            var connectionStringBuilder = new VSOConnectionStringBuilder()
+            var baseUrl = TestContext.Properties["VSOBaseUrl"] as string;
+            var credentials = new Credentials()
             {
-                BaseUrl = new Uri(ConfigurationManager.AppSettings["VSO-BaseUrl"]),
-                Credentials = new Credentials()
-                {
-                    UserName = ConfigurationManager.AppSettings["VSO-UserName"],
-                    AccessToken = ConfigurationManager.AppSettings["VSO-AccessToken"]
-                }
+                UserName = TestContext.Properties["VSOUserName"] as string,
+                AccessToken = TestContext.Properties["VSOAccessToken"] as string
             };
-            var repo = new DownloadRequest(connectionStringBuilder.ConnectionString);
+            var repo = new DownloadRequest(baseUrl, credentials);
             return repo;
         }
     }

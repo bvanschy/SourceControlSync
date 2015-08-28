@@ -71,7 +71,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
-    <None Include="appSettings.private.config" />
     <None Include="packages.config" />
   </ItemGroup>
   <Choose>
