@@ -60,7 +60,7 @@ namespace SourceControlSync.Domain
             }
             else if ((change.ChangeType & ItemChangeType.Rename) != 0)
             {
-                AddChange(change);
+                RenameChange(change);
             }
             else
             {
@@ -114,6 +114,11 @@ namespace SourceControlSync.Domain
             {
                 _items.Add(change.Item.Path, change);
             }
+        }
+
+        private void RenameChange(ItemChange change)
+        {
+            AddChange(change);
         }
 
         private static ItemChange EditExistingChange(ItemChange newChange, ItemChange existingChange)
