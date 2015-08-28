@@ -1,0 +1,40 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <!-- Configurations that affect the Test Framework -->
+  <RunConfiguration>
+    <!-- Path relative to solution directory -->
+    <ResultsDirectory>.\TestResults</ResultsDirectory>
+
+    <!-- [x86] | x64  
+      - You can also change it from menu Test, Test Settings, Default Processor Architecture -->
+    <TargetPlatform>x86</TargetPlatform>
+
+    <!-- Framework35 | [Framework40] | Framework45 -->
+    <TargetFrameworkVersion>Framework45</TargetFrameworkVersion>
+  </RunConfiguration>
+
+  <!-- Configurations for data collectors -->
+
+  <!-- Parameters used by tests at runtime -->
+  <TestRunParameters>
+    <Parameter name="AWSBucketName" value="bvan-test" />
+    <Parameter name="AWSRegionSystemName" value="us-east-1" />
+    <Parameter name="AWSAccessKeyId" value="" />
+    <Parameter name="AWSSecretAccessKey" value="" />
+    <Parameter name="VSOBaseUrl" value="https://bvan.visualstudio.com/DefaultCollection/" />
+    <Parameter name="VSOUserName" value="" />
+    <Parameter name="VSOAccessToken" value="" />
+  </TestRunParameters>
+
+  <!-- Adapter Specific sections -->
+
+  <!-- MSTest adapter -->
+  <MSTest>
+    <MapInconclusiveToFailed>True</MapInconclusiveToFailed>
+    <CaptureTraceOutput>false</CaptureTraceOutput>
+    <DeleteDeploymentDirectoryAfterTestRunIsComplete>False</DeleteDeploymentDirectoryAfterTestRunIsComplete>
+    <DeploymentEnabled>False</DeploymentEnabled>
+  </MSTest>
+
+
+</RunSettings>
