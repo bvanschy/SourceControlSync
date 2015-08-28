@@ -44,10 +44,10 @@ namespace SourceControlSync.WebApi.App_Start
             container.RegisterType<IChangesCalculator, ChangesCalculator>();
             container.RegisterType<IRepositoryFactory, UnityRepositoryFactory>();
             container.RegisterType<ISourceRepository, SourceRepository>();
-            container.RegisterType<IDownloadRequest, DownloadRequest>();
+            container.RegisterType<IDownloadRequest, DownloadRequest>(new InjectionConstructor(typeof(string)));
             container.RegisterType<IDestinationRepository, DestinationRepository>();
-            container.RegisterType<IItemCommand, DeleteItemCommand>("deleteItemCommand");
-            container.RegisterType<IItemCommand, UploadItemCommand>("uploadItemCommand");
+            container.RegisterType<IItemCommand, DeleteItemCommand>("deleteItemCommand", new InjectionConstructor(typeof(string)));
+            container.RegisterType<IItemCommand, UploadItemCommand>("uploadItemCommand", new InjectionConstructor(typeof(string)));
             container.RegisterType<IItemCommand, NullItemCommand>("nullItemCommand");
             container.RegisterType<TraceListener, SmtpTraceListener>();
             container.RegisterType<ILogger, Logger>();

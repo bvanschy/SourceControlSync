@@ -1,4 +1,5 @@
-﻿using Amazon.S3;
+﻿using Amazon;
+using Amazon.S3;
 using SourceControlSync.Domain;
 using SourceControlSync.Domain.Models;
 using System;
@@ -37,7 +38,8 @@ namespace SourceControlSync.DataAWS
             if (_s3Client == null)
             {
                 ValidateConnectionParameters();
-                _s3Client = new AmazonS3Client(_credentials.AccessKeyId, _credentials.SecretAccessKey, _bucket.Region);
+                var region = RegionEndpoint.GetBySystemName(_bucket.RegionSystemName);
+                _s3Client = new AmazonS3Client(_credentials.AccessKeyId, _credentials.SecretAccessKey, region);
             }
             return _s3Client;
         }
