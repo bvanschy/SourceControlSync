@@ -13,6 +13,7 @@ namespace SourceControlSync.DataAWS.Tests
     public class UploadItemCommandTests
     {
         [TestMethod]
+        [Ignore]
         public void UploadBlob()
         {
             var itemChange = new ItemChange()

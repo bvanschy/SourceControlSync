@@ -71,9 +71,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
-    <None Include="appSettings.private.config">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
+    <None Include="appSettings.private.config" />
     <None Include="packages.config" />
   </ItemGroup>
   <Choose>

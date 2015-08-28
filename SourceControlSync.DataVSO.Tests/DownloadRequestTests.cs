@@ -13,6 +13,7 @@ namespace SourceControlSync.DataVSO.Tests
     public class DownloadRequestTests
     {
         [TestMethod]
+        [Ignore]
         public void GetChanges()
         {
             var repo = CreateDownloadRequest();
@@ -30,6 +31,7 @@ namespace SourceControlSync.DataVSO.Tests
         }
 
         [TestMethod]
+        [Ignore]
         [ExpectedException(typeof(TaskCanceledException))]
         public void GetChangesWhenCanceled()
         {
@@ -51,6 +53,7 @@ namespace SourceControlSync.DataVSO.Tests
         }
 
         [TestMethod]
+        [Ignore]
         public void GetTextItemAndBlob()
         {
             var repo = CreateDownloadRequest();
@@ -71,6 +74,7 @@ namespace SourceControlSync.DataVSO.Tests
         }
 
         [TestMethod]
+        [Ignore]
         public void GetBinaryItemAndBlob()
         {
             var repo = CreateDownloadRequest();
@@ -90,6 +94,7 @@ namespace SourceControlSync.DataVSO.Tests
         }
 
         [TestMethod]
+        [Ignore]
         [ExpectedException(typeof(TaskCanceledException))]
         public void GetTextItemAndBlobWhenCanceled()
         {

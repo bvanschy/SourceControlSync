@@ -13,6 +13,7 @@ namespace SourceControlSync.DataAWS.Tests
     public class DeleteItemCommandTests
     {
         [TestMethod]
+        [Ignore]
         public void DeleteBlob()
         {
             var itemChange = new ItemChange()
