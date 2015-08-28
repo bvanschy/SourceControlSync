@@ -1,12 +1,8 @@
 ﻿using Microsoft.Azure;
-using SourceControlSync.WebApi.TraceListeners;
-using System;
-using System.Collections.Generic;
+using Microsoft.Practices.Unity;
+using SourceControlSync.WebApi.App_Start;
 using System.Diagnostics;
-using System.Linq;
-using System.Web;
 using System.Web.Http;
-using System.Web.Routing;
 
 namespace SourceControlSync.WebApi
 {
@@ -20,14 +16,19 @@ namespace SourceControlSync.WebApi
 
         private static void InitializeTraceListeners()
         {
-            Trace.AutoFlush = false;
-            Trace.IndentSize = 0;
+            var traceListenerParameters = CloudConfigurationManager.GetSetting("TraceListenerParameters");
+            if (!string.IsNullOrWhiteSpace(traceListenerParameters))
+            {
+                Trace.AutoFlush = false;
+                Trace.IndentSize = 0;
 
-            Trace.Listeners.Clear();
+                Trace.Listeners.Clear();
 
-            var smtpParameters = CloudConfigurationManager.GetSetting("SMTPParameters");
-            var smtpTraceListener = new SmtpTraceListener(smtpParameters);
-            Trace.Listeners.Add(smtpTraceListener);
+                var unityContainer = UnityConfig.GetConfiguredContainer();
+                var smtpTraceListener = unityContainer.Resolve<TraceListener>(
+                    new ParameterOverride("initializeData", traceListenerParameters));
+                Trace.Listeners.Add(smtpTraceListener);
+            }
         }
     }
 }

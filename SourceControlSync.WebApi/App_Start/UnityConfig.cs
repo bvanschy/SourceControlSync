@@ -1,10 +1,12 @@
-using System;
 using Microsoft.Practices.Unity;
-using Microsoft.Practices.Unity.Configuration;
-using SourceControlSync.Domain;
-using SourceControlSync.DataVSO;
 using SourceControlSync.DataAWS;
+using SourceControlSync.DataVSO;
+using SourceControlSync.Domain;
 using SourceControlSync.WebApi.Factories;
+using SourceControlSync.WebApi.TraceListeners;
+using SourceControlSync.WebApi.Util;
+using System;
+using System.Diagnostics;
 
 namespace SourceControlSync.WebApi.App_Start
 {
@@ -47,6 +49,8 @@ namespace SourceControlSync.WebApi.App_Start
             container.RegisterType<IItemCommand, DeleteItemCommand>("deleteItemCommand");
             container.RegisterType<IItemCommand, UploadItemCommand>("uploadItemCommand");
             container.RegisterType<IItemCommand, NullItemCommand>("nullItemCommand");
+            container.RegisterType<TraceListener, SmtpTraceListener>();
+            container.RegisterType<ILogger, Logger>();
         }
     }
 }

@@ -2,6 +2,7 @@
 using SourceControlSync.DataVSO;
 using SourceControlSync.Domain;
 using SourceControlSync.WebApi.Models;
+using SourceControlSync.WebApi.Util;
 using System;
 using System.Diagnostics;
 using System.Threading;
@@ -18,15 +19,17 @@ namespace SourceControlSync.WebApi.Controllers
 
         private readonly IRepositoryFactory _repositoryFactory;
         private readonly IChangesCalculator _changesCalculator;
+        private readonly ILogger _logger;
 
         private VSOCodePushed _pushEvent;
         private CancellationToken _token;
         private HeaderParameters _parameters;
 
-        public VSOController(IRepositoryFactory repositoryFactory, IChangesCalculator changesCalculator)
+        public VSOController(IRepositoryFactory repositoryFactory, IChangesCalculator changesCalculator, ILogger logger)
         {
             _repositoryFactory = repositoryFactory;
             _changesCalculator = changesCalculator;
+            _logger = logger;
         }
 
         public async Task<IHttpActionResult> PostAsync(VSOCodePushed data, CancellationToken token)
@@ -52,8 +55,11 @@ namespace SourceControlSync.WebApi.Controllers
 
         private void LogRequest()
         {
-            string content = JsonConvert.SerializeObject(_pushEvent, Formatting.Indented);
-            Trace.TraceInformation("Visual Studio Online posted an event {0}{1}{0}", Environment.NewLine, content);
+            if (_logger != null)
+            {
+                string content = JsonConvert.SerializeObject(_pushEvent, Formatting.Indented);
+                _logger.TraceInformation("Visual Studio Online posted an event {0}{1}{0}", Environment.NewLine, content);
+            }
         }
 
         private async Task<IHttpActionResult> HandleSynchronizePushAsync()

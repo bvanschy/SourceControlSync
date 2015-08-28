@@ -1,7 +1,6 @@
 ﻿using Microsoft.TeamFoundation.SourceControl.WebApi;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using SourceControlSync.DataVSO;
-using SourceControlSync.Domain;
 using SourceControlSync.Domain.Models;
 using SourceControlSync.WebApi.Controllers;
 using System;
@@ -69,7 +68,7 @@ namespace SourceControlSync.WebApi.Tests
                 CreateDestinationRepositoryString = (connectionString) => { return fakeDestinationRepository; }
             };
 
-            using (var controller = new VSOController(fakeRepositoryFactory, fakeChangesCalculator))
+            using (var controller = new VSOController(fakeRepositoryFactory, fakeChangesCalculator, null))
             {
                 controller.Request = new HttpRequestMessage(HttpMethod.Post, "");
                 controller.Request.Headers.Add(VSOController.HEADER_SOURCE_CONNECTIONSTRING, "SourceConnectioniString");
@@ -94,7 +93,7 @@ namespace SourceControlSync.WebApi.Tests
         [TestMethod]
         public void VSOControllerPostNoHeaders()
         {
-            var controller = new VSOController(null, null);
+            var controller = new VSOController(null, null, null);
             controller.Request = new HttpRequestMessage(HttpMethod.Post, "");
 
             var result = controller.PostAsync(null, CancellationToken.None).Result;

@@ -15,6 +15,7 @@ namespace SourceControlSync.DataAWS.Tests
         public TestContext TestContext { get; set; }
 
         [TestMethod]
+        [Ignore]
         public void DeleteBlob()
         {
             var itemChange = new ItemChange()
