@@ -10,14 +10,15 @@ namespace SourceControlSync.WebApi.TraceListeners
 {
     public class SmtpTraceListener : TraceListener
     {
-        private string _host;
-        private int _port;
-        private bool _ssl;
-        private string _username;
-        private string _password;
-        private string _from;
-        private string _to;
-        private string _subject;
+        private readonly string _host;
+        private readonly int _port;
+        private readonly bool _ssl;
+        private readonly string _username;
+        private readonly string _password;
+        private readonly string _from;
+        private readonly string _to;
+        private readonly string _subject;
+
         private StringBuilder _message = new StringBuilder();
 
         public SmtpTraceListener()
@@ -26,17 +27,20 @@ namespace SourceControlSync.WebApi.TraceListeners
 
         public SmtpTraceListener(string initializeData)
         {
-            var parms = initializeData.Split(';');
-            if (parms.Length == 8)
+            if (!string.IsNullOrWhiteSpace(initializeData))
             {
-                _host = parms[0];
-                _port = int.Parse(parms[1]);
-                _ssl = bool.Parse(parms[2]);
-                _username = parms[3];
-                _password = parms[4];
-                _from = parms[5];
-                _to = parms[6];
-                _subject = parms[7];
+                var parms = initializeData.Split(';');
+                if (parms.Length == 8)
+                {
+                    _host = parms[0];
+                    _port = int.Parse(parms[1]);
+                    _ssl = bool.Parse(parms[2]);
+                    _username = parms[3];
+                    _password = parms[4];
+                    _from = parms[5];
+                    _to = parms[6];
+                    _subject = parms[7];
+                }
             }
         }
 
@@ -59,11 +63,14 @@ namespace SourceControlSync.WebApi.TraceListeners
 
         private void SendEmail(string message)
         {
-            using (var smtpClient = new SmtpClient(_host, _port))
+            if (!string.IsNullOrWhiteSpace(_host))
             {
-                smtpClient.EnableSsl = _ssl;
-                smtpClient.Credentials = new NetworkCredential(_username, _password);
-                smtpClient.Send(_from, _to, _subject, message);
+                using (var smtpClient = new SmtpClient(_host, _port))
+                {
+                    smtpClient.EnableSsl = _ssl;
+                    smtpClient.Credentials = new NetworkCredential(_username, _password);
+                    smtpClient.Send(_from, _to, _subject, message);
+                }
             }
         }
     }
