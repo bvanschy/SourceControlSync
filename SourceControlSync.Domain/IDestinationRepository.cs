@@ -7,6 +7,8 @@ namespace SourceControlSync.Domain
 {
     public interface IDestinationRepository : IDisposable
     {
+        IList<ChangeCommandPair> ExecutedCommands { get; }
+
         Task PushItemChangesAsync(IEnumerable<ItemChange> changes, string root);
     }
 }

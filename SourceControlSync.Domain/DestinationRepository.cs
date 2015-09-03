@@ -8,15 +8,23 @@ namespace SourceControlSync.Domain
 {
     public class DestinationRepository : IDestinationRepository
     {
-        private readonly IItemCommand _deleteCommand;
-        private readonly IItemCommand _uploadCommand;
-        private readonly IItemCommand _nullCommand;
+        private readonly IList<IItemCommand> _commands;
+        private readonly IList<ChangeCommandPair> _executedCommands;
 
-        public DestinationRepository(IItemCommand deleteCommand, IItemCommand uploadCommand, IItemCommand nullCommand)
+        public DestinationRepository(params IItemCommand[] commands)
+            : this(commands.AsEnumerable())
         {
-            _deleteCommand = deleteCommand;
-            _uploadCommand = uploadCommand;
-            _nullCommand = nullCommand;
+        }
+
+        public DestinationRepository(IEnumerable<IItemCommand> commands)
+        {
+            _commands = commands.ToList();
+            _executedCommands = new List<ChangeCommandPair>();
+        }
+
+        public IList<ChangeCommandPair> ExecutedCommands
+        {
+            get { return _executedCommands; }
         }
 
         public async Task PushItemChangesAsync(IEnumerable<ItemChange> itemChanges, string root)
@@ -42,52 +50,27 @@ namespace SourceControlSync.Domain
                    };
         }
 
-        private Task ExecuteItemChangeOnDestinationAsync(ItemChange itemChange)
+        private async Task ExecuteItemChangeOnDestinationAsync(ItemChange itemChange)
         {
-            var command = GetItemChangeCommand(itemChange);
-            return command.ExecuteOnDestinationAsync(itemChange, CancellationToken.None);
-        }
-
-        private IItemCommand GetItemChangeCommand(ItemChange itemChange)
-        {
-            if (IsDeleteOperation(itemChange))
+            foreach (var command in _commands.Where(c => c.IsChangeOperable(itemChange)))
             {
-                return _deleteCommand;
+                await command.ExecuteOnDestinationAsync(itemChange, CancellationToken.None);
+                var executedCommand = new ChangeCommandPair()
+                {
+                    ItemChange = itemChange,
+                    ItemCommand = command
+                };
+                _executedCommands.Add(executedCommand);
             }
-            else if (IsUploadOperation(itemChange))
-            {
-                return _uploadCommand;
-            }
-            else
-            {
-                return _nullCommand;
-            }
-        }
-
-        private static bool IsDeleteOperation(ItemChange itemChange)
-        {
-            return (itemChange.ChangeType & ItemChangeType.Delete) != 0;
-        }
-
-        private static bool IsUploadOperation(ItemChange itemChange)
-        {
-            return itemChange.NewContent != null;
         }
 
         public void Dispose()
         {
-            if (_deleteCommand != null)
+            foreach (var command in _commands)
             {
-                _deleteCommand.Dispose();
+                command.Dispose();
             }
-            if (_uploadCommand != null)
-            {
-                _uploadCommand.Dispose();
-            }
-            if (_nullCommand != null)
-            {
-                _nullCommand.Dispose();
-            }
+            _commands.Clear();
         }
     }
 }

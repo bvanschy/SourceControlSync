@@ -1,0 +1,26 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/TestResults
+/SourceControlSync.DataAWS/bin
+/SourceControlSync.DataAWS/obj
+/SourceControlSync.DataAWS.Tests/bin
+/SourceControlSync.DataAWS.Tests/obj
+/SourceControlSync.DataVSO/bin
+/SourceControlSync.DataVSO/obj
+/SourceControlSync.DataVSO.Tests/bin
+/SourceControlSync.DataVSO.Tests/obj
+/SourceControlSync.Domain/bin
+/SourceControlSync.Domain/obj
+/SourceControlSync.Domain.Tests/bin
+/SourceControlSync.Domain.Tests/obj
+/SourceControlSync.WebApi/bin
+/SourceControlSync.WebApi/obj
+/SourceControlSync.WebApi.Tests/bin
+/SourceControlSync.WebApi.Tests/obj
+/SourceControlSync.WebApi.Tests/FakesAssemblies
+/SourceControlSync.Domain.Tests/FakesAssemblies
+/packages
+*.user
+*.suo

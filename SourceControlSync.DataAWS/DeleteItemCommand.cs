@@ -19,6 +19,11 @@ namespace SourceControlSync.DataAWS
         {
         }
 
+        public override bool IsChangeOperable(ItemChange itemChange)
+        {
+            return (itemChange.ChangeType & ItemChangeType.Delete) != 0;
+        }
+
         public override async Task ExecuteOnDestinationAsync(ItemChange itemChange, CancellationToken token)
         {
             var response = await DeleteItemAsync(itemChange, token);
@@ -38,6 +43,11 @@ namespace SourceControlSync.DataAWS
             };
             var s3Client = CreateS3Client();
             return await s3Client.DeleteObjectAsync(request, token);
+        }
+
+        public override string ToString()
+        {
+            return Resources.DeleteItemCommand;
         }
     }
 }

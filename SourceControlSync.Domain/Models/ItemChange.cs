@@ -60,5 +60,10 @@ namespace SourceControlSync.Domain.Models
                 NewContent = await ItemContent.CreateItemContentFromTextStreamAsync(content, Item.ContentMetadata.Encoding);
             }
         }
+
+        public override string ToString()
+        {
+            return string.Format("{0} {1}", ChangeType.ToString(), Item.Path);
+        }
     }
 }

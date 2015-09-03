@@ -50,15 +50,17 @@ namespace SourceControlSync.DataAWS
                 string.IsNullOrWhiteSpace(_bucket.BucketName) ||
                 string.IsNullOrWhiteSpace(_bucket.RegionSystemName))
             {
-                throw new ApplicationException("Invalid ConnectionString");
+                throw new ApplicationException("Invalid bucket");
             }
             if (_credentials == null ||
                 string.IsNullOrWhiteSpace(_credentials.AccessKeyId) ||
                 string.IsNullOrWhiteSpace(_credentials.SecretAccessKey))
             {
-                throw new ApplicationException("Invalid ConnectionString");
+                throw new ApplicationException("Invalid credentials");
             }
         }
+
+        public abstract bool IsChangeOperable(ItemChange itemChange);
 
         public abstract Task ExecuteOnDestinationAsync(ItemChange itemChange, CancellationToken token);
 

@@ -9,6 +9,14 @@ namespace SourceControlSync.DataVSO
 {
     public static class TeamFoundationSourceControlExtensions
     {
+        public static IList<string> GetCommitterEmails(this IEnumerable<Microsoft.TeamFoundation.SourceControl.WebApi.GitCommitRef> commits)
+        {
+            var recipients = (from commit in commits
+                              where !string.IsNullOrWhiteSpace(commit.Committer.Email)
+                              select commit.Committer.Email).Distinct().ToList();
+            return recipients;
+        }
+
         public static Push ToSync(this Microsoft.TeamFoundation.SourceControl.WebApi.GitPush push)
         {
             return new Push()

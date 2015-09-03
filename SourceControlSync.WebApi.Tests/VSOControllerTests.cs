@@ -1,6 +1,7 @@
 ﻿using Microsoft.TeamFoundation.SourceControl.WebApi;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using SourceControlSync.DataVSO;
+using SourceControlSync.Domain;
 using SourceControlSync.Domain.Models;
 using SourceControlSync.WebApi.Controllers;
 using System;
@@ -18,12 +19,17 @@ namespace SourceControlSync.WebApi.Tests
     public class VSOControllerTests
     {
         [TestMethod]
-        public void VSOControllerPost()
+        public void Post()
         {
             var pushEvent = CreateVSOCodePushedRequest("5597f65ce55386a771e4bf6fa190b5a26c0f5ce5", "2015-08-16T04:28:13Z");
 
             Push pushPassedToSource = null;
             string rootPassedToSource = null;
+            IEnumerable<Commit> commitsPassedToCalculator = null;
+            IEnumerable<ItemChange> changesReturnedByCalculator = null;
+            IEnumerable<ItemChange> changesPassedToDestination = null;
+            string rootPassedToDestination = null;
+            #region Fakes
             var fakeSourceRepository = new SourceControlSync.Domain.Fakes.StubISourceRepository()
             {
                 DownloadChangesAsyncPushStringCancellationToken = (push, root, token) =>
@@ -38,8 +44,6 @@ namespace SourceControlSync.WebApi.Tests
                 }
             };
 
-            IEnumerable<Commit> commitsPassedToCalculator = null;
-            IEnumerable<ItemChange> changesReturnedByCalculator = null;
             var fakeChangesCalculator = new SourceControlSync.Domain.Fakes.StubIChangesCalculator()
             {
                 CalculateItemChangesIEnumerableOfCommit = (commits) => 
@@ -50,8 +54,6 @@ namespace SourceControlSync.WebApi.Tests
                 ItemChangesGet = () => { return changesReturnedByCalculator; }
             };
 
-            IEnumerable<ItemChange> changesPassedToDestination = null;
-            string rootPassedToDestination = null;
             var fakeDestinationRepository = new SourceControlSync.Domain.Fakes.StubIDestinationRepository()
             {
                 PushItemChangesAsyncIEnumerableOfItemChangeString = (changes, root) =>
@@ -62,19 +64,18 @@ namespace SourceControlSync.WebApi.Tests
                 }
             };
 
-            var fakeRepositoryFactory = new SourceControlSync.Domain.Fakes.StubIRepositoryFactory()
-            {
-                CreateSourceRepositoryString = (connectionString) => { return fakeSourceRepository; },
-                CreateDestinationRepositoryString = (connectionString) => { return fakeDestinationRepository; }
-            };
+            var fakeChangesReport = new SourceControlSync.Domain.Fakes.StubIChangesReport();
+            var fakeErrorReport = new SourceControlSync.Domain.Fakes.StubIErrorReport();
+            #endregion
 
-            using (var controller = new VSOController(fakeRepositoryFactory, fakeChangesCalculator, null))
+            using (var controller = CreateVSOController(
+                fakeSourceRepository, 
+                fakeDestinationRepository, 
+                fakeChangesCalculator, 
+                fakeChangesReport, 
+                fakeErrorReport
+                ))
             {
-                controller.Request = new HttpRequestMessage(HttpMethod.Post, "");
-                controller.Request.Headers.Add(VSOController.HEADER_SOURCE_CONNECTIONSTRING, "SourceConnectioniString");
-                controller.Request.Headers.Add(VSOController.HEADER_DESTINATION_CONNECTIONSTRING, "DestinationConnectionString");
-                controller.Request.Headers.Add(VSOController.HEADER_ROOT, "/");
-
                 var result = controller.PostAsync(pushEvent, CancellationToken.None).Result;
 
                 Assert.IsInstanceOfType(result, typeof(OkResult));
@@ -91,14 +92,180 @@ namespace SourceControlSync.WebApi.Tests
         }
 
         [TestMethod]
-        public void VSOControllerPostNoHeaders()
+        public void PostNoHeaders()
         {
-            var controller = new VSOController(null, null, null);
-            controller.Request = new HttpRequestMessage(HttpMethod.Post, "");
+            var pushEvent = CreateVSOCodePushedRequest("5597f65ce55386a771e4bf6fa190b5a26c0f5ce5", "2015-08-16T04:28:13Z");
+            using (var controller = new VSOController(null, null, null, null, null))
+            {
+                controller.Request = new HttpRequestMessage(HttpMethod.Post, "");
 
-            var result = controller.PostAsync(null, CancellationToken.None).Result;
+                var result = controller.PostAsync(pushEvent, CancellationToken.None).Result;
 
-            Assert.IsInstanceOfType(result, typeof(BadRequestErrorMessageResult));
+                Assert.IsInstanceOfType(result, typeof(BadRequestErrorMessageResult));
+            }
+        }
+
+        [TestMethod]
+        public void ChangesReportFromPost()
+        {
+            var pushEvent = CreateVSOCodePushedRequest("5597f65ce55386a771e4bf6fa190b5a26c0f5ce5", "2015-08-16T04:28:13Z");
+
+            IList<ChangeCommandPair> reportExecutedCommands = null;
+            Exception reportException = null;
+            string reportRequest = null;
+            #region Fakes
+            var fakeSourceRepository = new SourceControlSync.Domain.Fakes.StubISourceRepository()
+            {
+                DownloadChangesAsyncPushStringCancellationToken = (push, root, token) => { return Task.FromResult(0); }
+            };
+            var fakeChangesCalculator = new SourceControlSync.Domain.Fakes.StubIChangesCalculator();
+            var fakeDestinationRepository = new SourceControlSync.Domain.Fakes.StubIDestinationRepository()
+            {
+                PushItemChangesAsyncIEnumerableOfItemChangeString = (changes, root) => { return Task.FromResult(0); },
+                ExecutedCommandsGet = () => new List<ChangeCommandPair>()
+                    {
+                        new ChangeCommandPair()
+                        { 
+                            ItemChange = new ItemChange() { ChangeType = ItemChangeType.Add, Item = new Item() { Path = "index.html" } },
+                            ItemCommand = new SourceControlSync.Domain.Fakes.StubIItemCommand()
+                            {
+                                ToString = () => "Uploaded"
+                            }
+                        }
+                    }
+            };
+
+            IChangesReport fakeChangesReport = new SourceControlSync.Domain.Fakes.StubIChangesReport()
+            {
+                ExecutedCommandsSetIListOfChangeCommandPair = (commands) => { reportExecutedCommands = commands; },
+                ExecutedCommandsGet = () => { return reportExecutedCommands; },
+                ExceptionSetException = (ex) => { reportException = ex; },
+                ExceptionGet = () => { return reportException; },
+                RequestSetString = (evt) => { reportRequest = evt; },
+                RequestGet = () => { return reportRequest; },
+                HasMessageGet = () => { return true; },
+                ToMailMessage = () => { return new System.Net.Mail.MailMessage(); }
+            };
+            IErrorReport fakeErrorReport = new SourceControlSync.Domain.Fakes.StubIErrorReport();
+            #endregion
+
+            using (var controller = CreateVSOController(
+                fakeSourceRepository, 
+                fakeDestinationRepository, 
+                fakeChangesCalculator, 
+                fakeChangesReport, 
+                fakeErrorReport
+                ))
+            {
+                var result = controller.PostAsync(pushEvent, CancellationToken.None).Result;
+
+                Assert.IsInstanceOfType(result, typeof(OkResult));
+                Assert.IsNotNull(fakeChangesReport.ExecutedCommands);
+                Assert.AreEqual(1, fakeChangesReport.ExecutedCommands.Count());
+                Assert.AreEqual(
+                    ItemChangeType.Add, 
+                    fakeChangesReport.ExecutedCommands.Single(pair => pair.ItemChange.Item.Path == "index.html").ItemChange.ChangeType);
+                Assert.AreEqual(
+                    "Uploaded", 
+                    fakeChangesReport.ExecutedCommands.Single(pair => pair.ItemChange.Item.Path == "index.html").ItemCommand.ToString());
+                Assert.IsNull(fakeChangesReport.Exception);
+                Assert.IsTrue(fakeChangesReport.HasMessage);
+                Assert.IsNotNull(fakeChangesReport.Request);
+                Assert.IsTrue(fakeChangesReport.Request.Contains("5597f65ce55386a771e4bf6fa190b5a26c0f5ce5"));
+            }
+        }
+
+        [TestMethod]
+        public void ChangesReportWithErrorFromPost()
+        {
+            var pushEvent = CreateVSOCodePushedRequest("5597f65ce55386a771e4bf6fa190b5a26c0f5ce5", "2015-08-16T04:28:13Z");
+
+            IList<ChangeCommandPair> reportExecutedCommands = null;
+            Exception reportException = null;
+            string reportRequest = null;
+            #region Fakes
+            var fakeSourceRepository = new SourceControlSync.Domain.Fakes.StubISourceRepository()
+            {
+                DownloadChangesAsyncPushStringCancellationToken = (push, root, token) => { throw new Exception("Oops!"); }
+            };
+            var fakeChangesCalculator = new SourceControlSync.Domain.Fakes.StubIChangesCalculator();
+            var fakeDestinationRepository = new SourceControlSync.Domain.Fakes.StubIDestinationRepository();
+
+            IChangesReport fakeChangesReport = new SourceControlSync.Domain.Fakes.StubIChangesReport()
+            {
+                ExecutedCommandsSetIListOfChangeCommandPair = (commands) => { reportExecutedCommands = commands; },
+                ExecutedCommandsGet = () => { return reportExecutedCommands; },
+                ExceptionSetException = (ex) => { reportException = ex; },
+                ExceptionGet = () => { return reportException; },
+                RequestSetString = (evt) => { reportRequest = evt; },
+                RequestGet = () => { return reportRequest; },
+                HasMessageGet = () => { return true; },
+                ToMailMessage = () => { return new System.Net.Mail.MailMessage(); }
+            };
+            IErrorReport fakeErrorReport = new SourceControlSync.Domain.Fakes.StubIErrorReport();
+            #endregion
+
+            using (var controller = CreateVSOController(
+                fakeSourceRepository, 
+                fakeDestinationRepository, 
+                fakeChangesCalculator, 
+                fakeChangesReport, 
+                fakeErrorReport
+                ))
+            {
+                var result = controller.PostAsync(pushEvent, CancellationToken.None).Result;
+
+                Assert.IsInstanceOfType(result, typeof(ExceptionResult));
+                Assert.IsNull(fakeChangesReport.ExecutedCommands);
+                Assert.IsNotNull(fakeChangesReport.Exception);
+                Assert.IsTrue(fakeChangesReport.HasMessage);
+                Assert.IsNotNull(fakeChangesReport.Request);
+                Assert.IsTrue(fakeChangesReport.Request.Contains("5597f65ce55386a771e4bf6fa190b5a26c0f5ce5"));
+            }
+        }
+
+        [TestMethod]
+        public void ErrorReportFromPost()
+        {
+            var pushEvent = CreateVSOCodePushedRequest("5597f65ce55386a771e4bf6fa190b5a26c0f5ce5", "2015-08-16T04:28:13Z");
+
+            Exception reportException = null;
+            string reportRequest = null;
+            #region Fakes
+            var fakeSourceRepository = new SourceControlSync.Domain.Fakes.StubISourceRepository()
+            {
+                DownloadChangesAsyncPushStringCancellationToken = (push, root, token) => { throw new Exception("Oops!"); }
+            };
+            var fakeChangesCalculator = new SourceControlSync.Domain.Fakes.StubIChangesCalculator();
+            var fakeDestinationRepository = new SourceControlSync.Domain.Fakes.StubIDestinationRepository();
+            IChangesReport fakeChangesReport = new SourceControlSync.Domain.Fakes.StubIChangesReport();
+            IErrorReport fakeErrorReport = new SourceControlSync.Domain.Fakes.StubIErrorReport()
+            {
+                ExceptionSetException = (ex) => { reportException = ex; },
+                ExceptionGet = () => { return reportException; },
+                RequestSetString = (evt) => { reportRequest = evt; },
+                RequestGet = () => { return reportRequest; },
+                HasMessageGet = () => { return reportException != null; },
+                ToMailMessage = () => { return new System.Net.Mail.MailMessage(); }
+            };
+            #endregion
+
+            using (var controller = CreateVSOController(
+                fakeSourceRepository, 
+                fakeDestinationRepository, 
+                fakeChangesCalculator, 
+                fakeChangesReport, 
+                fakeErrorReport
+                ))
+            {
+                var result = controller.PostAsync(pushEvent, CancellationToken.None).Result;
+
+                Assert.IsInstanceOfType(result, typeof(ExceptionResult));
+                Assert.IsNotNull(fakeErrorReport.Exception);
+                Assert.IsTrue(fakeErrorReport.HasMessage);
+                Assert.IsNotNull(fakeErrorReport.Request);
+                Assert.IsTrue(fakeErrorReport.Request.Contains("5597f65ce55386a771e4bf6fa190b5a26c0f5ce5"));
+            }
         }
 
         private static VSOCodePushed CreateVSOCodePushedRequest(string commitId, string commitDate)
@@ -114,7 +281,8 @@ namespace SourceControlSync.WebApi.Tests
                             CommitId = commitId,
                             Committer = new GitUserDate() 
                             { 
-                                Date = DateTime.ParseExact(commitDate, "yyyy'-'MM'-'dd'T'HH':'mm':'ss'Z'", CultureInfo.InvariantCulture) 
+                                Date = DateTime.ParseExact(commitDate, "yyyy'-'MM'-'dd'T'HH':'mm':'ss'Z'", CultureInfo.InvariantCulture),
+                                Email = "me@example.com"
                             }
                         }
                     },
@@ -122,6 +290,35 @@ namespace SourceControlSync.WebApi.Tests
                 }
             };
             return push;
+        }
+
+        private static VSOController CreateVSOController(
+            ISourceRepository sourceRepository, 
+            IDestinationRepository destinationRepository,
+            IChangesCalculator changesCalculator, 
+            IChangesReport changesReport, 
+            IErrorReport errorReport)
+        {
+            var fakeSourceRepositoryFactory = new SourceControlSync.Domain.Fakes.StubISourceRepositoryFactory()
+            {
+                CreateSourceRepositoryString = (connectionString) => { return sourceRepository; }
+            };
+            var fakeDestinationRepositoryFactory = new SourceControlSync.Domain.Fakes.StubIDestinationRepositoryFactory()
+            {
+                CreateDestinationRepositoryString = (connectionString) => { return destinationRepository; }
+            };
+            var controller = new VSOController(
+                fakeSourceRepositoryFactory, 
+                fakeDestinationRepositoryFactory, 
+                changesCalculator, 
+                changesReport, 
+                errorReport
+                );
+            controller.Request = new HttpRequestMessage(HttpMethod.Post, "");
+            controller.Request.Headers.Add(VSOController.HEADER_SOURCE_CONNECTIONSTRING, "");
+            controller.Request.Headers.Add(VSOController.HEADER_DESTINATION_CONNECTIONSTRING, "");
+            controller.Request.Headers.Add(VSOController.HEADER_ROOT, "/");
+            return controller;
         }
     }
 }

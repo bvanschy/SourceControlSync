@@ -7,6 +7,10 @@ namespace SourceControlSync.Domain
 {
     public interface IItemCommand : IDisposable
     {
+        bool IsChangeOperable(ItemChange itemChange);
+
         Task ExecuteOnDestinationAsync(ItemChange itemChange, CancellationToken token);
+
+        string ToString();
     }
 }

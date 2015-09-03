@@ -3,8 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SourceControlSync.Domain
 {
@@ -72,11 +70,7 @@ namespace SourceControlSync.Domain
         {
             if (_items.ContainsKey(change.Item.Path))
             {
-                var existingItem = _items[change.Item.Path];
-                if ((existingItem.ChangeType & ItemChangeType.Delete) == 0)
-                {
-                    throw new ApplicationException("Cannot add item on an existing item");
-                }
+                ValidateExistingChangeForAdd(_items[change.Item.Path]);
                 _items[change.Item.Path] = change;
             }
             else
@@ -123,10 +117,7 @@ namespace SourceControlSync.Domain
 
         private static ItemChange EditExistingChange(ItemChange newChange, ItemChange existingChange)
         {
-            if ((existingChange.ChangeType & ItemChangeType.Delete) != 0)
-            {
-                throw new ApplicationException("Cannot edit a deleted item");
-            }
+            ValidateExistingChangeForEdit(existingChange);
 
             var editedExistingItem = new ItemChange()
             {
@@ -140,6 +131,22 @@ namespace SourceControlSync.Domain
         private static bool IsItemAdded(ItemChange existingChange)
         {
             return (existingChange.ChangeType & (ItemChangeType.Add | ItemChangeType.Rename)) != 0;
+        }
+
+        private static void ValidateExistingChangeForAdd(ItemChange existingItem)
+        {
+            if ((existingItem.ChangeType & ItemChangeType.Delete) == 0)
+            {
+                throw new ApplicationException("Cannot add item on an existing item");
+            }
+        }
+
+        private static void ValidateExistingChangeForEdit(ItemChange existingChange)
+        {
+            if ((existingChange.ChangeType & ItemChangeType.Delete) != 0)
+            {
+                throw new ApplicationException("Cannot edit a deleted item");
+            }
         }
     }
 }

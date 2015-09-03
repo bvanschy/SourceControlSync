@@ -1,13 +1,7 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using SourceControlSync.Domain;
 using SourceControlSync.Domain.Models;
-using System;
 using System.Collections.Generic;
-using System.Configuration;
-using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace SourceControlSync.Domain.Tests
@@ -22,23 +16,20 @@ namespace SourceControlSync.Domain.Tests
             {
                 new ItemChange()
                 {
-                    ChangeType = ItemChangeType.Delete,
-                    Item = new Item()
-                    {
-                        Path = "/test/test.txt"
-                    }
+                    Item = new Item() { Path = "/test/test.txt" }
                 }
             };
             ItemChange itemChanged = null;
             var fakeCommand = new Fakes.StubIItemCommand()
             {
+                IsChangeOperableItemChange = (change) => { return true; },
                 ExecuteOnDestinationAsyncItemChangeCancellationToken = (change, token) => 
                 {
                     itemChanged = change;
                     return Task.FromResult(0); 
                 }
             };
-            var repo = new DestinationRepository(fakeCommand, null, null);
+            var repo = new DestinationRepository(fakeCommand);
 
             repo.PushItemChangesAsync(itemChanges, "/").Wait();
 
@@ -53,33 +44,21 @@ namespace SourceControlSync.Domain.Tests
             {
                 new ItemChange()
                 {
-                    ChangeType = ItemChangeType.Add,
-                    Item = new Item()
-                    {
-                        ContentMetadata = new FileContentMetadata()
-                        {
-                            ContentType = "text/plain",
-                            Encoding = Encoding.UTF8
-                        },
-                        Path = "/test/test.txt"
-                    },
+                    Item = new Item() { Path = "/test/test.txt" },
                     NewContent = new ItemContent()
-                    {
-                        ContentType = ItemContentType.RawText,
-                        Content = "This is a test"
-                    }
                 }
             };
             ItemChange itemChanged = null;
             var fakeCommand = new Fakes.StubIItemCommand()
             {
+                IsChangeOperableItemChange = (change) => { return true; },
                 ExecuteOnDestinationAsyncItemChangeCancellationToken = (change, token) =>
                 {
                     itemChanged = change;
                     return Task.FromResult(0);
                 }
             };
-            var repo = new DestinationRepository(null, fakeCommand, null);
+            var repo = new DestinationRepository(fakeCommand);
 
             repo.PushItemChangesAsync(itemChanges, "/").Wait();
 
@@ -89,118 +68,107 @@ namespace SourceControlSync.Domain.Tests
         }
 
         [TestMethod]
-        public void EditItem()
+        public void ExecutedCommands()
         {
             var itemChanges = new List<ItemChange>()
             {
+                new ItemChange()
+                {
+                    ChangeType = ItemChangeType.Delete,
+                    Item = new Item()
+                    {
+                        Path = "/test/test1.txt"
+                    }
+                },
+                new ItemChange()
+                {
+                    ChangeType = ItemChangeType.Add,
+                    Item = new Item()
+                    {
+                        ContentMetadata = new FileContentMetadata(),
+                        Path = "/test/test2.txt"
+                    },
+                    NewContent = new ItemContent()
+                },
                 new ItemChange()
                 {
                     ChangeType = ItemChangeType.Edit,
                     Item = new Item()
                     {
-                        ContentMetadata = new FileContentMetadata()
-                        {
-                            ContentType = "text/plain",
-                            Encoding = Encoding.UTF8
-                        },
-                        Path = "/test/test.txt"
+                        ContentMetadata = new FileContentMetadata(),
+                        Path = "/test/test3.txt"
                     },
                     NewContent = new ItemContent()
-                    {
-                        ContentType = ItemContentType.RawText,
-                        Content = "This is a test"
-                    }
-                }
-            };
-            ItemChange itemChanged = null;
-            var fakeCommand = new Fakes.StubIItemCommand()
-            {
-                ExecuteOnDestinationAsyncItemChangeCancellationToken = (change, token) =>
-                {
-                    itemChanged = change;
-                    return Task.FromResult(0);
-                }
-            };
-            var repo = new DestinationRepository(null, fakeCommand, null);
-
-            repo.PushItemChangesAsync(itemChanges, "/").Wait();
-
-            Assert.IsNotNull(itemChanged);
-            Assert.AreEqual("test/test.txt", itemChanged.Item.Path);
-            Assert.AreSame(itemChanges.Single().NewContent, itemChanged.NewContent);
-        }
-
-        [TestMethod]
-        public void RenameItem()
-        {
-            var itemChanges = new List<ItemChange>()
-            {
+                },
                 new ItemChange()
                 {
                     ChangeType = ItemChangeType.Rename,
                     Item = new Item()
                     {
-                        ContentMetadata = new FileContentMetadata()
-                        {
-                            ContentType = "text/plain",
-                            Encoding = Encoding.UTF8
-                        },
-                        Path = "/test/test.txt"
+                        ContentMetadata = new FileContentMetadata(),
+                        Path = "/test/test4.txt"
                     },
                     NewContent = new ItemContent()
-                    {
-                        ContentType = ItemContentType.RawText,
-                        Content = "This is a test"
-                    }
-                }
-            };
-            ItemChange itemChanged = null;
-            var fakeCommand = new Fakes.StubIItemCommand()
-            {
-                ExecuteOnDestinationAsyncItemChangeCancellationToken = (change, token) =>
-                {
-                    itemChanged = change;
-                    return Task.FromResult(0);
-                }
-            };
-            var repo = new DestinationRepository(null, fakeCommand, null);
-
-            repo.PushItemChangesAsync(itemChanges, "/").Wait();
-
-            Assert.IsNotNull(itemChanged);
-            Assert.AreEqual("test/test.txt", itemChanged.Item.Path);
-            Assert.AreSame(itemChanges.Single().NewContent, itemChanged.NewContent);
-        }
-
-        [TestMethod]
-        public void EncodeItem()
-        {
-            var itemChanges = new List<ItemChange>()
-            {
+                },
                 new ItemChange()
                 {
                     ChangeType = ItemChangeType.Encoding,
                     Item = new Item()
                     {
-                        Path = "/test/test.txt"
+                        Path = "/test/test5.txt"
                     }
                 }
             };
-            ItemChange itemChanged = null;
-            var fakeCommand = new Fakes.StubIItemCommand()
+            var fakeDeleteCommand = new Fakes.StubIItemCommand()
             {
-                ExecuteOnDestinationAsyncItemChangeCancellationToken = (change, token) =>
-                {
-                    itemChanged = change;
-                    return Task.FromResult(0);
-                }
+                IsChangeOperableItemChange = (change) => { return change.ChangeType == ItemChangeType.Delete; },
+                ExecuteOnDestinationAsyncItemChangeCancellationToken = (itemChange, token) => { return Task.FromResult(0); }
             };
-            var repo = new DestinationRepository(null, null, fakeCommand);
+            var fakeUploadCommand = new Fakes.StubIItemCommand()
+            {
+                IsChangeOperableItemChange = (change) => 
+                { 
+                    return change.ChangeType == ItemChangeType.Add ||
+                        change.ChangeType == ItemChangeType.Edit ||
+                        change.ChangeType == ItemChangeType.Rename; 
+                },
+                ExecuteOnDestinationAsyncItemChangeCancellationToken = (itemChange, token) => { return Task.FromResult(0); }
+            };
+            var fakeNullCommand = new Fakes.StubIItemCommand()
+            {
+                IsChangeOperableItemChange = (change) => { return change.ChangeType == ItemChangeType.Encoding; },
+                ExecuteOnDestinationAsyncItemChangeCancellationToken = (itemChange, token) => { return Task.FromResult(0); }
+            };
+            var repo = new DestinationRepository(fakeDeleteCommand, fakeUploadCommand, fakeNullCommand);
 
             repo.PushItemChangesAsync(itemChanges, "/").Wait();
 
-            Assert.IsNotNull(itemChanged);
-            Assert.AreEqual("test/test.txt", itemChanged.Item.Path);
+            Assert.IsNotNull(repo.ExecutedCommands);
+            Assert.AreEqual(5, repo.ExecutedCommands.Count());
+            foreach (var pair in repo.ExecutedCommands)
+            {
+                switch (pair.ItemChange.Item.Path)
+                {
+                    case "test/test1.txt":
+                        Assert.AreSame(fakeDeleteCommand, pair.ItemCommand);
+                        break;
+                    case "test/test2.txt":
+                        Assert.AreSame(fakeUploadCommand, pair.ItemCommand);
+                        break;
+                    case "test/test3.txt":
+                        Assert.AreSame(fakeUploadCommand, pair.ItemCommand);
+                        break;
+                    case "test/test4.txt":
+                        Assert.AreSame(fakeUploadCommand, pair.ItemCommand);
+                        break;
+                    case "test/test5.txt":
+                        Assert.AreSame(fakeNullCommand, pair.ItemCommand);
+                        break;
+                    default:
+                        Assert.Fail();
+                        break;
+                }
+            }
         }
     }
 }

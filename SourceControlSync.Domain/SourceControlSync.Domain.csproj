@@ -39,15 +39,23 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ChangeCommandPair.cs" />
+    <Compile Include="ChangesReport.cs" />
+    <Compile Include="Clock.cs" />
+    <Compile Include="ErrorReport.cs" />
+    <Compile Include="IChangesReport.cs" />
     <Compile Include="DestinationRepository.cs" />
     <Compile Include="ChangesCalculator.cs" />
     <Compile Include="ConnectionStringBuilder.cs" />
     <Compile Include="IChangesCalculator.cs" />
+    <Compile Include="IClock.cs" />
     <Compile Include="IDestinationRepository.cs" />
+    <Compile Include="IDestinationRepositoryFactory.cs" />
     <Compile Include="IDownloadRequest.cs" />
+    <Compile Include="IErrorReport.cs" />
     <Compile Include="IItemCommand.cs" />
-    <Compile Include="IRepositoryFactory.cs" />
     <Compile Include="ISourceRepository.cs" />
+    <Compile Include="ISourceRepositoryFactory.cs" />
     <Compile Include="Models\Commit.cs" />
     <Compile Include="Models\FileContentMetadata.cs" />
     <Compile Include="Models\Item.cs" />
@@ -56,11 +64,21 @@
     <Compile Include="Models\Push.cs" />
     <Compile Include="Models\Repository.cs" />
     <Compile Include="Models\UserDate.cs" />
-    <Compile Include="NullItemCommand.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
     <Compile Include="SourceRepository.cs" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <EmbeddedResource Include="Resources.fr.resx" />
+    <EmbeddedResource Include="Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

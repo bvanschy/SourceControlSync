@@ -1,17 +1,13 @@
 ﻿using SourceControlSync.Domain;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SourceControlSync.DataVSO
 {
     public class VSOConnectionStringBuilder : ConnectionStringBuilder
     {
-        private const string PROPERTY_BASEURL = "BaseUrl";
-        private const string PROPERTY_USERNAME = "UserName";
-        private const string PROPERTY_ACCESSTOKEN = "AccessToken";
+        public const string PROPERTY_BASEURL = "BaseUrl";
+        public const string PROPERTY_USERNAME = "UserName";
+        public const string PROPERTY_ACCESSTOKEN = "AccessToken";
 
         public VSOConnectionStringBuilder(string connectionString)
         {

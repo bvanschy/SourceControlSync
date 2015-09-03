@@ -19,6 +19,11 @@ namespace SourceControlSync.DataAWS
         {
         }
 
+        public override bool IsChangeOperable(ItemChange itemChange)
+        {
+            return itemChange.NewContent != null;
+        }
+
         public override async Task ExecuteOnDestinationAsync(ItemChange itemChange, CancellationToken token)
         {
             var response = await UploadItemAsync(itemChange, token);
@@ -43,6 +48,11 @@ namespace SourceControlSync.DataAWS
                 var s3Client = CreateS3Client();
                 return await s3Client.PutObjectAsync(request, token);
             }
+        }
+
+        public override string ToString()
+        {
+            return Resources.UploadItemCommand;
         }
     }
 }

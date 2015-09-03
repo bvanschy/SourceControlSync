@@ -111,6 +111,7 @@
     <Compile Include="TeamFoundationSourceControlExtensions.cs" />
     <Compile Include="VSOConnectionStringBuilder.cs" />
     <Compile Include="Credentials.cs" />
+    <Compile Include="VSORepositoryFactory.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />

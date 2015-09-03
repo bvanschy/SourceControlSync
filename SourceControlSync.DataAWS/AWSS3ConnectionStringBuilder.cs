@@ -1,18 +1,13 @@
 ﻿using SourceControlSync.Domain;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SourceControlSync.DataAWS
 {
     public class AWSS3ConnectionStringBuilder : ConnectionStringBuilder
     {
-        private const string PROPERTY_BUCKETNAME = "BucketName";
-        private const string PROPERTY_REGIONSYSTEMNAME = "RegionSystemName";
-        private const string PROPERTY_ACCESSKEYID = "AccessKeyId";
-        private const string PROPERTY_SECRETACCESSKEY = "SecretAccessKey";
+        public const string PROPERTY_BUCKETNAME = "BucketName";
+        public const string PROPERTY_REGIONSYSTEMNAME = "RegionSystemName";
+        public const string PROPERTY_ACCESSKEYID = "AccessKeyId";
+        public const string PROPERTY_SECRETACCESSKEY = "SecretAccessKey";
 
         public AWSS3ConnectionStringBuilder(string connectionString)
         {

@@ -2,9 +2,6 @@ using Microsoft.Practices.Unity;
 using SourceControlSync.DataAWS;
 using SourceControlSync.DataVSO;
 using SourceControlSync.Domain;
-using SourceControlSync.WebApi.Factories;
-using SourceControlSync.WebApi.TraceListeners;
-using SourceControlSync.WebApi.Util;
 using System;
 using System.Diagnostics;
 
@@ -42,15 +39,11 @@ namespace SourceControlSync.WebApi.App_Start
             // container.LoadConfiguration();
 
             container.RegisterType<IChangesCalculator, ChangesCalculator>();
-            container.RegisterType<IRepositoryFactory, UnityRepositoryFactory>();
-            container.RegisterType<ISourceRepository, SourceRepository>();
-            container.RegisterType<IDownloadRequest, DownloadRequest>(new InjectionConstructor(typeof(string)));
-            container.RegisterType<IDestinationRepository, DestinationRepository>();
-            container.RegisterType<IItemCommand, DeleteItemCommand>("deleteItemCommand", new InjectionConstructor(typeof(string)));
-            container.RegisterType<IItemCommand, UploadItemCommand>("uploadItemCommand", new InjectionConstructor(typeof(string)));
-            container.RegisterType<IItemCommand, NullItemCommand>("nullItemCommand");
-            container.RegisterType<TraceListener, SmtpTraceListener>();
-            container.RegisterType<ILogger, Logger>();
+            container.RegisterType<ISourceRepositoryFactory, VSORepositoryFactory>();
+            container.RegisterType<IDestinationRepositoryFactory, AWSS3RepositoryFactory>();
+            container.RegisterType<IChangesReport, ChangesReport>();
+            container.RegisterType<IErrorReport, ErrorReport>();
+            container.RegisterType<IClock, Clock>();
         }
     }
 }
