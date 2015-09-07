@@ -93,20 +93,22 @@ namespace SourceControlSync.WebApi.Controllers
             }
         }
 
-        private async Task<IList<ChangeCommandPair>> SynchronizePushAsync()
+        private async Task<IExecutedCommands> SynchronizePushAsync()
         {
             var push = _pushEvent.ToSync();
             string root = _parameters[HEADER_ROOT];
-            string sourceConnectionString = _parameters[HEADER_SOURCE_CONNECTIONSTRING];
-            string destinationConnectionString = _parameters[HEADER_DESTINATION_CONNECTIONSTRING];
-            using (var sourceRepository = _sourceRepositoryFactory.CreateSourceRepository(sourceConnectionString))
-            using (var destinationRepository = _destinationRepositoryFactory.CreateDestinationRepository(destinationConnectionString))
-            {
-                await sourceRepository.DownloadChangesAsync(push, root, _token);
-                _changesCalculator.CalculateItemChanges(push.Commits);
-                await destinationRepository.PushItemChangesAsync(_changesCalculator.ItemChanges, root);
-                return destinationRepository.ExecutedCommands;
-            }
+
+            var sourceConnectionString = _parameters[HEADER_SOURCE_CONNECTIONSTRING];
+            var sourceRepository = _sourceRepositoryFactory.CreateSourceRepository(sourceConnectionString);
+            await sourceRepository.DownloadChangesAsync(push, root, _token);
+
+            _changesCalculator.CalculateItemChanges(push.Commits);
+
+            var destinationConnectionString = _parameters[HEADER_DESTINATION_CONNECTIONSTRING];
+            var destinationRepository = _destinationRepositoryFactory.CreateDestinationRepository(destinationConnectionString);
+            await destinationRepository.PushItemChangesAsync(_changesCalculator.ItemChanges, root);
+
+            return destinationRepository.ExecutedCommands;
         }
 
         private async Task SendChangesReportAsync()

@@ -1,7 +1,10 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Amazon;
+using Amazon.S3;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using SourceControlSync.Domain;
 using SourceControlSync.Domain.Models;
 using System.Globalization;
+using System.Linq;
 using System.Threading;
 
 namespace SourceControlSync.DataAWS.Tests
@@ -18,80 +21,65 @@ namespace SourceControlSync.DataAWS.Tests
         [Ignore]
         public void DeleteBlob()
         {
-            var itemChange = new ItemChange()
-            {
-                ChangeType = ItemChangeType.Delete,
-                Item = new Item()
-                {
-                    Path = "test/test.txt"
-                }
-            };
-            var command = CreateDeleteCommand();
+            var itemChange = CreateItemChange();
+            var command = CreateDeleteCommand(itemChange);
+            var s3Client = CreateS3Client();
 
-            command.ExecuteOnDestinationAsync(itemChange, CancellationToken.None).Wait();
-
-            Assert.IsTrue(command.IsChangeOperable(itemChange));
-        }
-
-        [TestMethod]
-        public void DeleteBlobAllowed()
-        {
-            var itemChange = new ItemChange()
-            {
-                ChangeType = ItemChangeType.Delete | ItemChangeType.SourceRename
-            };
-            var command = CreateDeleteCommand();
-
-            Assert.IsTrue(command.IsChangeOperable(itemChange));
-        }
-
-        [TestMethod]
-        public void AddBlobNotAllowed()
-        {
-            var itemChange = new ItemChange()
-            {
-                ChangeType = ItemChangeType.Add
-            };
-            var command = CreateDeleteCommand();
-
-            Assert.IsFalse(command.IsChangeOperable(itemChange));
+            command.ExecuteOnDestinationAsync(s3Client, GetBucketName(), CancellationToken.None).Wait();
         }
 
         [TestMethod]
         public void CommandToString()
         {
-            var command = CreateDeleteCommand();
+            var itemChange = CreateItemChange();
+            var command = CreateDeleteCommand(itemChange);
 
-            var description = command.ToString();
+            var description = command.GetDescription("{0} {1}");
 
-            Assert.AreEqual("Deleted", description);
+            Assert.IsTrue(description.Single().Contains("test/test.txt"));
+            Assert.IsTrue(description.Single().Contains("Deleted"));
         }
 
         [TestMethod]
         public void CommandToStringInFrench()
         {
             Thread.CurrentThread.CurrentUICulture = new CultureInfo("fr-CA");
-            var command = CreateDeleteCommand();
+            var itemChange = CreateItemChange();
+            var command = CreateDeleteCommand(itemChange);
 
-            var description = command.ToString();
+            var description = command.GetDescription("{0} {1}");
 
-            Assert.IsFalse(string.IsNullOrWhiteSpace(description));
-            Assert.AreNotEqual("Deleted", description);
+            Assert.IsTrue(description.Single().Contains("test/test.txt"));
+            Assert.IsTrue(description.Single().Contains("supprim"));
         }
 
-        private IItemCommand CreateDeleteCommand()
+        private ItemChange CreateItemChange()
         {
-            var bucket = new Bucket()
+            return new ItemChange()
             {
-                RegionSystemName = TestContext.Properties["AWSRegionSystemName"] as string,
-                BucketName = TestContext.Properties["AWSBucketName"] as string
+                ChangeType = ItemChangeType.Delete,
+                Item = new Item() { Path = "test/test.txt" }
             };
-            var credentials = new Credentials()
-            {
-                AccessKeyId = TestContext.Properties["AWSAccessKeyId"] as string,
-                SecretAccessKey = TestContext.Properties["AWSSecretAccessKey"] as string
-            };
-            return new DeleteItemCommand(bucket, credentials);
+        }
+
+        private IItemCommand CreateDeleteCommand(ItemChange itemChange)
+        {
+            return new DeleteItemCommand(itemChange);
+        }
+
+        private AmazonS3Client CreateS3Client()
+        {
+            var region = RegionEndpoint.GetBySystemName(TestContext.Properties["AWSRegionSystemName"] as string);
+            return new AmazonS3Client(
+                TestContext.Properties["AWSAccessKeyId"] as string, 
+                TestContext.Properties["AWSSecretAccessKey"] as string, 
+                region
+                );
+        }
+
+        private string GetBucketName()
+        {
+            return TestContext.Properties["AWSBucketName"] as string;
         }
 
         [TestInitialize]

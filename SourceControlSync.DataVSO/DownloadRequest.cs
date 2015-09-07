@@ -83,10 +83,5 @@ namespace SourceControlSync.DataVSO
                 throw new ApplicationException("Invalid ConnectionString");
             }
         }
-
-        public void Dispose()
-        {
-            _httpClient = null;
-        }
     }
 }

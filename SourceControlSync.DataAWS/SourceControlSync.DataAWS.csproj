@@ -47,14 +47,17 @@
     <Compile Include="Bucket.cs" />
     <Compile Include="Credentials.cs" />
     <Compile Include="DeleteItemCommand.cs" />
+    <Compile Include="ExecutedCommands.cs" />
+    <Compile Include="IItemCommand.cs" />
+    <Compile Include="NullItemCommand.cs" />
     <Compile Include="Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
-    <Compile Include="S3ItemCommand.cs" />
     <Compile Include="AWSS3ConnectionStringBuilder.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="AWSS3Context.cs" />
     <Compile Include="UploadItemCommand.cs" />
   </ItemGroup>
   <ItemGroup>

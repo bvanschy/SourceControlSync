@@ -79,6 +79,7 @@ namespace SourceControlSync.WebApi.Tests
                 var result = controller.PostAsync(pushEvent, CancellationToken.None).Result;
 
                 Assert.IsInstanceOfType(result, typeof(OkResult));
+
                 Assert.AreEqual(Guid.Parse("0ad49569-db8b-4a8a-b5cc-f7ff009949c8"), pushPassedToSource.Repository.Id);
                 Assert.AreEqual("5597f65ce55386a771e4bf6fa190b5a26c0f5ce5", pushPassedToSource.Commits.Single().CommitId);
                 Assert.AreEqual("/", rootPassedToSource);
@@ -110,7 +111,7 @@ namespace SourceControlSync.WebApi.Tests
         {
             var pushEvent = CreateVSOCodePushedRequest("5597f65ce55386a771e4bf6fa190b5a26c0f5ce5", "2015-08-16T04:28:13Z");
 
-            IList<ChangeCommandPair> reportExecutedCommands = null;
+            IExecutedCommands reportExecutedCommands = null;
             Exception reportException = null;
             string reportRequest = null;
             #region Fakes
@@ -122,22 +123,11 @@ namespace SourceControlSync.WebApi.Tests
             var fakeDestinationRepository = new SourceControlSync.Domain.Fakes.StubIDestinationRepository()
             {
                 PushItemChangesAsyncIEnumerableOfItemChangeString = (changes, root) => { return Task.FromResult(0); },
-                ExecutedCommandsGet = () => new List<ChangeCommandPair>()
-                    {
-                        new ChangeCommandPair()
-                        { 
-                            ItemChange = new ItemChange() { ChangeType = ItemChangeType.Add, Item = new Item() { Path = "index.html" } },
-                            ItemCommand = new SourceControlSync.Domain.Fakes.StubIItemCommand()
-                            {
-                                ToString = () => "Uploaded"
-                            }
-                        }
-                    }
+                ExecutedCommandsGet = () => { return new SourceControlSync.Domain.Fakes.StubIExecutedCommands(); }
             };
-
             IChangesReport fakeChangesReport = new SourceControlSync.Domain.Fakes.StubIChangesReport()
             {
-                ExecutedCommandsSetIListOfChangeCommandPair = (commands) => { reportExecutedCommands = commands; },
+                ExecutedCommandsSetIExecutedCommands = (commands) => { reportExecutedCommands = commands; },
                 ExecutedCommandsGet = () => { return reportExecutedCommands; },
                 ExceptionSetException = (ex) => { reportException = ex; },
                 ExceptionGet = () => { return reportException; },
@@ -160,18 +150,10 @@ namespace SourceControlSync.WebApi.Tests
                 var result = controller.PostAsync(pushEvent, CancellationToken.None).Result;
 
                 Assert.IsInstanceOfType(result, typeof(OkResult));
-                Assert.IsNotNull(fakeChangesReport.ExecutedCommands);
-                Assert.AreEqual(1, fakeChangesReport.ExecutedCommands.Count());
-                Assert.AreEqual(
-                    ItemChangeType.Add, 
-                    fakeChangesReport.ExecutedCommands.Single(pair => pair.ItemChange.Item.Path == "index.html").ItemChange.ChangeType);
-                Assert.AreEqual(
-                    "Uploaded", 
-                    fakeChangesReport.ExecutedCommands.Single(pair => pair.ItemChange.Item.Path == "index.html").ItemCommand.ToString());
-                Assert.IsNull(fakeChangesReport.Exception);
-                Assert.IsTrue(fakeChangesReport.HasMessage);
                 Assert.IsNotNull(fakeChangesReport.Request);
                 Assert.IsTrue(fakeChangesReport.Request.Contains("5597f65ce55386a771e4bf6fa190b5a26c0f5ce5"));
+                Assert.IsNotNull(fakeChangesReport.ExecutedCommands);
+                Assert.IsNull(fakeChangesReport.Exception);
             }
         }
 
@@ -180,7 +162,7 @@ namespace SourceControlSync.WebApi.Tests
         {
             var pushEvent = CreateVSOCodePushedRequest("5597f65ce55386a771e4bf6fa190b5a26c0f5ce5", "2015-08-16T04:28:13Z");
 
-            IList<ChangeCommandPair> reportExecutedCommands = null;
+            IExecutedCommands reportExecutedCommands = null;
             Exception reportException = null;
             string reportRequest = null;
             #region Fakes
@@ -193,7 +175,7 @@ namespace SourceControlSync.WebApi.Tests
 
             IChangesReport fakeChangesReport = new SourceControlSync.Domain.Fakes.StubIChangesReport()
             {
-                ExecutedCommandsSetIListOfChangeCommandPair = (commands) => { reportExecutedCommands = commands; },
+                ExecutedCommandsSetIExecutedCommands = (commands) => { reportExecutedCommands = commands; },
                 ExecutedCommandsGet = () => { return reportExecutedCommands; },
                 ExceptionSetException = (ex) => { reportException = ex; },
                 ExceptionGet = () => { return reportException; },
@@ -216,11 +198,10 @@ namespace SourceControlSync.WebApi.Tests
                 var result = controller.PostAsync(pushEvent, CancellationToken.None).Result;
 
                 Assert.IsInstanceOfType(result, typeof(ExceptionResult));
-                Assert.IsNull(fakeChangesReport.ExecutedCommands);
-                Assert.IsNotNull(fakeChangesReport.Exception);
-                Assert.IsTrue(fakeChangesReport.HasMessage);
                 Assert.IsNotNull(fakeChangesReport.Request);
                 Assert.IsTrue(fakeChangesReport.Request.Contains("5597f65ce55386a771e4bf6fa190b5a26c0f5ce5"));
+                Assert.IsNull(fakeChangesReport.ExecutedCommands);
+                Assert.IsNotNull(fakeChangesReport.Exception);
             }
         }
 
@@ -261,10 +242,9 @@ namespace SourceControlSync.WebApi.Tests
                 var result = controller.PostAsync(pushEvent, CancellationToken.None).Result;
 
                 Assert.IsInstanceOfType(result, typeof(ExceptionResult));
-                Assert.IsNotNull(fakeErrorReport.Exception);
-                Assert.IsTrue(fakeErrorReport.HasMessage);
                 Assert.IsNotNull(fakeErrorReport.Request);
                 Assert.IsTrue(fakeErrorReport.Request.Contains("5597f65ce55386a771e4bf6fa190b5a26c0f5ce5"));
+                Assert.IsNotNull(fakeErrorReport.Exception);
             }
         }
 

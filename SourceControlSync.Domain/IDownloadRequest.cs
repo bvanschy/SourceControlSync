@@ -5,9 +5,10 @@ using System.Threading.Tasks;
 
 namespace SourceControlSync.Domain
 {
-    public interface IDownloadRequest : IDisposable
+    public interface IDownloadRequest
     {
         Task DownloadChangesInCommitAsync(Commit commit, Guid repositoryId, CancellationToken token);
+
         Task DownloadItemAndContentInCommitAsync(ItemChange change, Commit commit, Guid repositoryId, CancellationToken token);
     }
 }

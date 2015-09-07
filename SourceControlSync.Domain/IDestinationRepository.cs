@@ -5,9 +5,9 @@ using System.Threading.Tasks;
 
 namespace SourceControlSync.Domain
 {
-    public interface IDestinationRepository : IDisposable
+    public interface IDestinationRepository
     {
-        IList<ChangeCommandPair> ExecutedCommands { get; }
+        IExecutedCommands ExecutedCommands { get; }
 
         Task PushItemChangesAsync(IEnumerable<ItemChange> changes, string root);
     }

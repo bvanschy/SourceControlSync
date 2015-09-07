@@ -58,13 +58,5 @@ namespace SourceControlSync.Domain
         {
             return (change.ChangeType & (ItemChangeType.Edit | ItemChangeType.Add | ItemChangeType.Rename)) != 0;
         }
-
-        public void Dispose()
-        {
-            if (_downloadRequest != null)
-            {
-                _downloadRequest.Dispose();
-            }
-        }
     }
 }

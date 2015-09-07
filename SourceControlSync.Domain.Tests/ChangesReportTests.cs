@@ -23,57 +23,20 @@ namespace SourceControlSync.Domain.Tests
         public void MailMessageWithNoException()
         {
             var fakeClock = new Fakes.StubIClock();
-            var fakeDeleteCommand = new Fakes.StubIItemCommand()
+            var fakeExecutedCommands = new Fakes.StubIExecutedCommands()
             {
-                ToString = () => { return "Deleted"; }
-            };
-            var fakeUploadCommand = new Fakes.StubIItemCommand()
-            {
-                ToString = () => { return "Uploaded"; }
-            };
-            var fakeNullCommand = new Fakes.StubIItemCommand()
-            {
-                ToString = () => { return "Skipped"; }
+                ToString = () => { return "ExecutedCommands"; }
             };
             using (var changesReport = new ChangesReport(fakeClock))
             {
                 changesReport.Request = string.Format("{{ Id: \"{0}\", Message: \"message\" }}", Guid.NewGuid().ToString());
-                changesReport.ExecutedCommands = new List<ChangeCommandPair>()
-                {
-                    new ChangeCommandPair()
-                    {
-                        ItemChange = new ItemChange()
-                        {
-                            Item = new Item() { Path = "index.html" }
-                        },
-                        ItemCommand = fakeUploadCommand
-                    },
-                    new ChangeCommandPair()
-                    {
-                        ItemChange = new ItemChange()
-                        {
-                            Item = new Item() { Path = "index3.html" }
-                        },
-                        ItemCommand = fakeNullCommand
-                    },
-                    new ChangeCommandPair()
-                    {
-                        ItemChange = new ItemChange()
-                        {
-                            Item = new Item() { Path = "index2.html" }
-                        },
-                        ItemCommand = fakeDeleteCommand
-                    }
-                };
+                changesReport.ExecutedCommands = fakeExecutedCommands;
 
                 var message = changesReport.ToMailMessage();
 
                 Assert.IsTrue(changesReport.HasMessage);
                 Assert.IsFalse(message.IsBodyHtml);
-                Assert.IsTrue(message.Body.Contains("index.html\tUploaded"));
-                Assert.IsTrue(message.Body.Contains("index2.html\tDeleted"));
-                Assert.IsTrue(message.Body.Contains("index3.html\tSkipped"));
-                Assert.IsTrue(message.Body.IndexOf("index2.html") < message.Body.IndexOf("index3.html"));
+                Assert.IsTrue(message.Body.Contains("ExecutedCommands"));
                 Assert.IsTrue(message.Body.Contains("0"));
                 Assert.AreEqual(1, message.Attachments.Count);
                 Assert.AreEqual(ErrorReport.ATTACHMENT_CONTENTTYPE, message.Attachments.Single().ContentType.MediaType);

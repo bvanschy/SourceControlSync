@@ -39,7 +39,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ChangeCommandPair.cs" />
     <Compile Include="ChangesReport.cs" />
     <Compile Include="Clock.cs" />
     <Compile Include="ErrorReport.cs" />
@@ -49,11 +48,12 @@
     <Compile Include="ConnectionStringBuilder.cs" />
     <Compile Include="IChangesCalculator.cs" />
     <Compile Include="IClock.cs" />
+    <Compile Include="IDestinationContext.cs" />
     <Compile Include="IDestinationRepository.cs" />
     <Compile Include="IDestinationRepositoryFactory.cs" />
     <Compile Include="IDownloadRequest.cs" />
     <Compile Include="IErrorReport.cs" />
-    <Compile Include="IItemCommand.cs" />
+    <Compile Include="IExecutedCommands.cs" />
     <Compile Include="ISourceRepository.cs" />
     <Compile Include="ISourceRepositoryFactory.cs" />
     <Compile Include="Models\Commit.cs" />

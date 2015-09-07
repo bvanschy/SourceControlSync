@@ -1,58 +1,52 @@
-﻿using Amazon.S3.Model;
+﻿using Amazon.S3;
+using Amazon.S3.Model;
+using SourceControlSync.Domain;
 using SourceControlSync.Domain.Models;
 using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace SourceControlSync.DataAWS
 {
-    public class UploadItemCommand : S3ItemCommand
+    public class UploadItemCommand : IItemCommand
     {
-        public UploadItemCommand(string connectionString)
-            : base(connectionString)
+        private readonly ItemChange _itemChange;
+
+        public UploadItemCommand(ItemChange itemChange)
         {
+            _itemChange = itemChange;
         }
 
-        public UploadItemCommand(Bucket bucket, Credentials credentials)
-            : base(bucket, credentials)
+        public async Task ExecuteOnDestinationAsync(AmazonS3Client s3Client, string bucketName, CancellationToken token)
         {
-        }
-
-        public override bool IsChangeOperable(ItemChange itemChange)
-        {
-            return itemChange.NewContent != null;
-        }
-
-        public override async Task ExecuteOnDestinationAsync(ItemChange itemChange, CancellationToken token)
-        {
-            var response = await UploadItemAsync(itemChange, token);
+            var response = await UploadItemAsync(s3Client, bucketName, token);
 
             if (response.HttpStatusCode != HttpStatusCode.OK)
             {
-                throw new ApplicationException(string.Format("Failed to upload {0} to S3", itemChange.Item.Path));
+                throw new ApplicationException(string.Format("Failed to upload {0} to S3", _itemChange.Item.Path));
             }
         }
 
-        private async Task<PutObjectResponse> UploadItemAsync(ItemChange itemChange, CancellationToken token)
+        private async Task<PutObjectResponse> UploadItemAsync(AmazonS3Client s3Client, string bucketName, CancellationToken token)
         {
-            using (var contentStream = itemChange.CreateContentStream())
+            using (var contentStream = _itemChange.CreateContentStream())
             {
                 var request = new PutObjectRequest()
                 {
-                    BucketName = BucketName,
-                    Key = itemChange.Item.Path,
-                    ContentType = itemChange.Item.ContentMetadata.ContentType,
+                    BucketName = bucketName,
+                    Key = _itemChange.Item.Path,
+                    ContentType = _itemChange.Item.ContentMetadata.ContentType,
                     InputStream = contentStream
                 };
-                var s3Client = CreateS3Client();
                 return await s3Client.PutObjectAsync(request, token);
             }
         }
 
-        public override string ToString()
+        public IEnumerable<string> GetDescription(string format)
         {
-            return Resources.UploadItemCommand;
+            return new string[] { string.Format(format, _itemChange.Item.Path, Resources.UploadItemCommand) };
         }
     }
 }

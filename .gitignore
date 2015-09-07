@@ -15,12 +15,12 @@
 /SourceControlSync.Domain/obj
 /SourceControlSync.Domain.Tests/bin
 /SourceControlSync.Domain.Tests/obj
+/SourceControlSync.Domain.Tests/FakesAssemblies
 /SourceControlSync.WebApi/bin
 /SourceControlSync.WebApi/obj
 /SourceControlSync.WebApi.Tests/bin
 /SourceControlSync.WebApi.Tests/obj
 /SourceControlSync.WebApi.Tests/FakesAssemblies
-/SourceControlSync.Domain.Tests/FakesAssemblies
 /packages
 *.user
 *.suo

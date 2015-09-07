@@ -1,7 +1,10 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Amazon;
+using Amazon.S3;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using SourceControlSync.Domain;
 using SourceControlSync.Domain.Models;
 using System.Globalization;
+using System.Linq;
 using System.Text;
 using System.Threading;
 
@@ -19,7 +22,41 @@ namespace SourceControlSync.DataAWS.Tests
         [Ignore]
         public void UploadBlob()
         {
-            var itemChange = new ItemChange()
+            var itemChange = CreateItemChange();
+            var command = CreateUploadCommand(itemChange);
+            var s3Client = CreateS3Client();
+
+            command.ExecuteOnDestinationAsync(s3Client, GetBucketName(), CancellationToken.None).Wait();
+        }
+
+        [TestMethod]
+        public void CommandToString()
+        {
+            var itemChange = CreateItemChange();
+            var command = CreateUploadCommand(itemChange);
+
+            var description = command.GetDescription("{0} {1}");
+
+            Assert.IsTrue(description.Single().Contains("test/test.txt"));
+            Assert.IsTrue(description.Single().Contains("Uploaded"));
+        }
+
+        [TestMethod]
+        public void CommandToStringInFrench()
+        {
+            Thread.CurrentThread.CurrentUICulture = new CultureInfo("fr-CA");
+            var itemChange = CreateItemChange();
+            var command = CreateUploadCommand(itemChange);
+
+            var description = command.GetDescription("{0} {1}");
+
+            Assert.IsTrue(description.Single().Contains("test/test.txt"));
+            Assert.IsTrue(description.Single().Contains("charg"));
+        }
+
+        private ItemChange CreateItemChange()
+        {
+            return new ItemChange()
             {
                 ChangeType = ItemChangeType.Add,
                 Item = new Item()
@@ -37,73 +74,26 @@ namespace SourceControlSync.DataAWS.Tests
                     Content = "This is a test"
                 }
             };
-            var command = CreateUploadCommand();
-
-            command.ExecuteOnDestinationAsync(itemChange, CancellationToken.None).Wait();
-
-            Assert.IsTrue(command.IsChangeOperable(itemChange));
         }
 
-        [TestMethod]
-        public void UploadBlobAllowed()
+        private IItemCommand CreateUploadCommand(ItemChange itemChange)
         {
-            var itemChange = new ItemChange()
-            {
-                ChangeType = ItemChangeType.Rename,
-                NewContent = new ItemContent()
-            };
-            var command = CreateUploadCommand();
-
-            Assert.IsTrue(command.IsChangeOperable(itemChange));
+            return new UploadItemCommand(itemChange);
         }
 
-        [TestMethod]
-        public void UploadBlobNotAllowed()
+        private AmazonS3Client CreateS3Client()
         {
-            var itemChange = new ItemChange()
-            {
-                ChangeType = ItemChangeType.Delete
-            };
-            var command = CreateUploadCommand();
-
-            Assert.IsFalse(command.IsChangeOperable(itemChange));
+            var region = RegionEndpoint.GetBySystemName(TestContext.Properties["AWSRegionSystemName"] as string);
+            return new AmazonS3Client(
+                TestContext.Properties["AWSAccessKeyId"] as string,
+                TestContext.Properties["AWSSecretAccessKey"] as string,
+                region
+                );
         }
 
-        [TestMethod]
-        public void CommandToString()
+        private string GetBucketName()
         {
-            var command = CreateUploadCommand();
-
-            var description = command.ToString();
-
-            Assert.AreEqual("Uploaded", description);
-        }
-
-        [TestMethod]
-        public void CommandToStringInFrench()
-        {
-            Thread.CurrentThread.CurrentUICulture = new CultureInfo("fr-CA");
-            var command = CreateUploadCommand();
-
-            var description = command.ToString();
-
-            Assert.IsFalse(string.IsNullOrWhiteSpace(description));
-            Assert.AreNotEqual("Uploaded", description);
-        }
-
-        private IItemCommand CreateUploadCommand()
-        {
-            var bucket = new Bucket()
-            {
-                RegionSystemName = TestContext.Properties["AWSRegionSystemName"] as string,
-                BucketName = TestContext.Properties["AWSBucketName"] as string
-            };
-            var credentials = new Credentials()
-            {
-                AccessKeyId = TestContext.Properties["AWSAccessKeyId"] as string,
-                SecretAccessKey = TestContext.Properties["AWSSecretAccessKey"] as string
-            };
-            return new UploadItemCommand(bucket, credentials);
+            return TestContext.Properties["AWSBucketName"] as string;
         }
 
         [TestInitialize]

@@ -6,10 +6,7 @@ namespace SourceControlSync.DataAWS
     {
         public IDestinationRepository CreateDestinationRepository(string connectionString)
         {
-            return new DestinationRepository(
-                new DeleteItemCommand(connectionString),
-                new UploadItemCommand(connectionString)
-                );
+            return new DestinationRepository(new AWSS3Context(connectionString));
         }
     }
 }

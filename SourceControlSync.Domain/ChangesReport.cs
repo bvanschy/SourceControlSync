@@ -14,7 +14,7 @@ namespace SourceControlSync.Domain
         {
         }
 
-        public IList<ChangeCommandPair> ExecutedCommands { get; set; }
+        public IExecutedCommands ExecutedCommands { get; set; }
 
         public override bool HasMessage
         {
@@ -40,35 +40,28 @@ namespace SourceControlSync.Domain
 
             if (ExecutedCommands != null)
             {
-                GetMessageBodyForSuccess(body);
+                body.AppendLine(GetMessageBodyForSuccess());
             }
-
             if (Exception != null)
             {
-                GetMessageBodyForError(body);
+                body.AppendLine(GetMessageBodyForError());
             }
-
             body.AppendLine();
+
             body.AppendLine(GetDurationString(Thread.CurrentThread.CurrentUICulture));
             body.AppendLine();
 
             return body.ToString();
         }
 
-        private void GetMessageBodyForError(StringBuilder body)
+        private string GetMessageBodyForError()
         {
-            body.AppendLine(Exception.Message);
+            return Exception.Message;
         }
 
-        private void GetMessageBodyForSuccess(StringBuilder body)
+        private string GetMessageBodyForSuccess()
         {
-            var executedCommandsLookup = ExecutedCommands.ToLookup(kv => kv.ItemChange.Item.Path, kv => kv.ItemCommand.ToString());
-            foreach (var commands in executedCommandsLookup.OrderBy(kv => kv.Key))
-            {
-                body.Append(commands.Key)
-                    .Append("\t")
-                    .AppendLine(string.Join(",", commands));
-            }
+            return ExecutedCommands.ToString();
         }
     }
 }

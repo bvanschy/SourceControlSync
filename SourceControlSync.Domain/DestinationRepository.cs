@@ -8,30 +8,21 @@ namespace SourceControlSync.Domain
 {
     public class DestinationRepository : IDestinationRepository
     {
-        private readonly IList<IItemCommand> _commands;
-        private readonly IList<ChangeCommandPair> _executedCommands;
+        private readonly IDestinationContext _destinationContext;
 
-        public DestinationRepository(params IItemCommand[] commands)
-            : this(commands.AsEnumerable())
+        public DestinationRepository(IDestinationContext destinationContext)
         {
+            _destinationContext = destinationContext;
         }
 
-        public DestinationRepository(IEnumerable<IItemCommand> commands)
-        {
-            _commands = commands.ToList();
-            _executedCommands = new List<ChangeCommandPair>();
-        }
-
-        public IList<ChangeCommandPair> ExecutedCommands
-        {
-            get { return _executedCommands; }
-        }
+        public IExecutedCommands ExecutedCommands { get; private set; }
 
         public async Task PushItemChangesAsync(IEnumerable<ItemChange> itemChanges, string root)
         {
-            var tasks = from itemChange in GetItemChangesInRoot(itemChanges, root)
-                        select ExecuteItemChangeOnDestinationAsync(itemChange);
-            await Task.WhenAll(tasks);
+            ExecutedCommands = null;
+            _destinationContext.AddItemChanges(GetItemChangesInRoot(itemChanges, root));
+            await _destinationContext.SaveChangesAsync(CancellationToken.None);
+            ExecutedCommands = _destinationContext.ExecutedCommands;
         }
 
         private static IEnumerable<ItemChange> GetItemChangesInRoot(IEnumerable<ItemChange> itemChanges, string root)
@@ -48,29 +39,6 @@ namespace SourceControlSync.Domain
                        },
                        NewContent = change.NewContent
                    };
-        }
-
-        private async Task ExecuteItemChangeOnDestinationAsync(ItemChange itemChange)
-        {
-            foreach (var command in _commands.Where(c => c.IsChangeOperable(itemChange)))
-            {
-                await command.ExecuteOnDestinationAsync(itemChange, CancellationToken.None);
-                var executedCommand = new ChangeCommandPair()
-                {
-                    ItemChange = itemChange,
-                    ItemCommand = command
-                };
-                _executedCommands.Add(executedCommand);
-            }
-        }
-
-        public void Dispose()
-        {
-            foreach (var command in _commands)
-            {
-                command.Dispose();
-            }
-            _commands.Clear();
         }
     }
 }
