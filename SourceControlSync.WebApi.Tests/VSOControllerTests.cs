@@ -18,22 +18,31 @@ namespace SourceControlSync.WebApi.Tests
     [TestClass]
     public class VSOControllerTests
     {
-        [TestMethod]
-        public void Post()
-        {
-            var pushEvent = CreateVSOCodePushedRequest("5597f65ce55386a771e4bf6fa190b5a26c0f5ce5", "2015-08-16T04:28:13Z");
+        private Push pushPassedToSource;
+        private string rootPassedToSource;
+        private ISourceRepository fakeSourceRepository;
 
-            Push pushPassedToSource = null;
-            string rootPassedToSource = null;
-            IEnumerable<Commit> commitsPassedToCalculator = null;
-            IEnumerable<ItemChange> changesReturnedByCalculator = null;
-            IEnumerable<ItemChange> changesPassedToDestination = null;
-            string rootPassedToDestination = null;
-            #region Fakes
-            var fakeSourceRepository = new SourceControlSync.Domain.Fakes.StubISourceRepository()
+        private IEnumerable<Commit> commitsPassedToCalculator;
+        private IEnumerable<ItemChange> changesReturnedByCalculator;
+        private IChangesCalculator fakeChangesCalculator;
+
+        private IEnumerable<ItemChange> changesPassedToDestination;
+        private string rootPassedToDestination;
+        private IDestinationRepository fakeDestinationRepository;
+
+        private IChangesReport fakeChangesReport;
+        private IErrorReport fakeErrorReport;
+
+        [TestInitialize]
+        public void InitializeTest()
+        {
+            pushPassedToSource = null;
+            rootPassedToSource = null;
+            fakeSourceRepository = new SourceControlSync.Domain.Fakes.StubISourceRepository()
             {
                 DownloadChangesAsyncPushStringCancellationToken = (push, root, token) =>
                 {
+                    token.ThrowIfCancellationRequested();
                     pushPassedToSource = push;
                     rootPassedToSource = root;
                     foreach (var commit in push.Commits)
@@ -44,9 +53,11 @@ namespace SourceControlSync.WebApi.Tests
                 }
             };
 
-            var fakeChangesCalculator = new SourceControlSync.Domain.Fakes.StubIChangesCalculator()
+            commitsPassedToCalculator = null;
+            changesReturnedByCalculator = null;
+            fakeChangesCalculator = new SourceControlSync.Domain.Fakes.StubIChangesCalculator()
             {
-                CalculateItemChangesIEnumerableOfCommit = (commits) => 
+                CalculateItemChangesIEnumerableOfCommit = (commits) =>
                 {
                     commitsPassedToCalculator = commits;
                     changesReturnedByCalculator = commits.SelectMany(commit => commit.Changes).ToList();
@@ -54,27 +65,30 @@ namespace SourceControlSync.WebApi.Tests
                 ItemChangesGet = () => { return changesReturnedByCalculator; }
             };
 
-            var fakeDestinationRepository = new SourceControlSync.Domain.Fakes.StubIDestinationRepository()
+            changesPassedToDestination = null;
+            rootPassedToDestination = null;
+            fakeDestinationRepository = new SourceControlSync.Domain.Fakes.StubIDestinationRepository()
             {
                 PushItemChangesAsyncIEnumerableOfItemChangeString = (changes, root) =>
                 {
                     changesPassedToDestination = changes;
                     rootPassedToDestination = root;
                     return Task.FromResult(0);
-                }
+                },
+                ExecutedCommandsGet = () => { return new SourceControlSync.Domain.Fakes.StubIExecutedCommands(); }
             };
 
-            var fakeChangesReport = new SourceControlSync.Domain.Fakes.StubIChangesReport();
-            var fakeErrorReport = new SourceControlSync.Domain.Fakes.StubIErrorReport();
-            #endregion
+            var fakeClock = new SourceControlSync.Domain.Fakes.StubIClock();
+            fakeChangesReport = new ChangesReport(fakeClock);
+            fakeErrorReport = new ErrorReport(fakeClock);
+        }
 
-            using (var controller = CreateVSOController(
-                fakeSourceRepository, 
-                fakeDestinationRepository, 
-                fakeChangesCalculator, 
-                fakeChangesReport, 
-                fakeErrorReport
-                ))
+        [TestMethod]
+        public void Post()
+        {
+            var pushEvent = CreateVSOCodePushedRequest("5597f65ce55386a771e4bf6fa190b5a26c0f5ce5", "2015-08-16T04:28:13Z");
+
+            using (var controller = CreateVSOController())
             {
                 var result = controller.PostAsync(pushEvent, CancellationToken.None).Result;
 
@@ -111,41 +125,7 @@ namespace SourceControlSync.WebApi.Tests
         {
             var pushEvent = CreateVSOCodePushedRequest("5597f65ce55386a771e4bf6fa190b5a26c0f5ce5", "2015-08-16T04:28:13Z");
 
-            IExecutedCommands reportExecutedCommands = null;
-            Exception reportException = null;
-            string reportRequest = null;
-            #region Fakes
-            var fakeSourceRepository = new SourceControlSync.Domain.Fakes.StubISourceRepository()
-            {
-                DownloadChangesAsyncPushStringCancellationToken = (push, root, token) => { return Task.FromResult(0); }
-            };
-            var fakeChangesCalculator = new SourceControlSync.Domain.Fakes.StubIChangesCalculator();
-            var fakeDestinationRepository = new SourceControlSync.Domain.Fakes.StubIDestinationRepository()
-            {
-                PushItemChangesAsyncIEnumerableOfItemChangeString = (changes, root) => { return Task.FromResult(0); },
-                ExecutedCommandsGet = () => { return new SourceControlSync.Domain.Fakes.StubIExecutedCommands(); }
-            };
-            IChangesReport fakeChangesReport = new SourceControlSync.Domain.Fakes.StubIChangesReport()
-            {
-                ExecutedCommandsSetIExecutedCommands = (commands) => { reportExecutedCommands = commands; },
-                ExecutedCommandsGet = () => { return reportExecutedCommands; },
-                ExceptionSetException = (ex) => { reportException = ex; },
-                ExceptionGet = () => { return reportException; },
-                RequestSetString = (evt) => { reportRequest = evt; },
-                RequestGet = () => { return reportRequest; },
-                HasMessageGet = () => { return true; },
-                ToMailMessage = () => { return new System.Net.Mail.MailMessage(); }
-            };
-            IErrorReport fakeErrorReport = new SourceControlSync.Domain.Fakes.StubIErrorReport();
-            #endregion
-
-            using (var controller = CreateVSOController(
-                fakeSourceRepository, 
-                fakeDestinationRepository, 
-                fakeChangesCalculator, 
-                fakeChangesReport, 
-                fakeErrorReport
-                ))
+            using (var controller = CreateVSOController())
             {
                 var result = controller.PostAsync(pushEvent, CancellationToken.None).Result;
 
@@ -162,40 +142,10 @@ namespace SourceControlSync.WebApi.Tests
         {
             var pushEvent = CreateVSOCodePushedRequest("5597f65ce55386a771e4bf6fa190b5a26c0f5ce5", "2015-08-16T04:28:13Z");
 
-            IExecutedCommands reportExecutedCommands = null;
-            Exception reportException = null;
-            string reportRequest = null;
-            #region Fakes
-            var fakeSourceRepository = new SourceControlSync.Domain.Fakes.StubISourceRepository()
+            using (var controller = CreateVSOController())
             {
-                DownloadChangesAsyncPushStringCancellationToken = (push, root, token) => { throw new Exception("Oops!"); }
-            };
-            var fakeChangesCalculator = new SourceControlSync.Domain.Fakes.StubIChangesCalculator();
-            var fakeDestinationRepository = new SourceControlSync.Domain.Fakes.StubIDestinationRepository();
-
-            IChangesReport fakeChangesReport = new SourceControlSync.Domain.Fakes.StubIChangesReport()
-            {
-                ExecutedCommandsSetIExecutedCommands = (commands) => { reportExecutedCommands = commands; },
-                ExecutedCommandsGet = () => { return reportExecutedCommands; },
-                ExceptionSetException = (ex) => { reportException = ex; },
-                ExceptionGet = () => { return reportException; },
-                RequestSetString = (evt) => { reportRequest = evt; },
-                RequestGet = () => { return reportRequest; },
-                HasMessageGet = () => { return true; },
-                ToMailMessage = () => { return new System.Net.Mail.MailMessage(); }
-            };
-            IErrorReport fakeErrorReport = new SourceControlSync.Domain.Fakes.StubIErrorReport();
-            #endregion
-
-            using (var controller = CreateVSOController(
-                fakeSourceRepository, 
-                fakeDestinationRepository, 
-                fakeChangesCalculator, 
-                fakeChangesReport, 
-                fakeErrorReport
-                ))
-            {
-                var result = controller.PostAsync(pushEvent, CancellationToken.None).Result;
+                var token = new CancellationToken(true);
+                var result = controller.PostAsync(pushEvent, token).Result;
 
                 Assert.IsInstanceOfType(result, typeof(ExceptionResult));
                 Assert.IsNotNull(fakeChangesReport.Request);
@@ -210,36 +160,10 @@ namespace SourceControlSync.WebApi.Tests
         {
             var pushEvent = CreateVSOCodePushedRequest("5597f65ce55386a771e4bf6fa190b5a26c0f5ce5", "2015-08-16T04:28:13Z");
 
-            Exception reportException = null;
-            string reportRequest = null;
-            #region Fakes
-            var fakeSourceRepository = new SourceControlSync.Domain.Fakes.StubISourceRepository()
+            using (var controller = CreateVSOController())
             {
-                DownloadChangesAsyncPushStringCancellationToken = (push, root, token) => { throw new Exception("Oops!"); }
-            };
-            var fakeChangesCalculator = new SourceControlSync.Domain.Fakes.StubIChangesCalculator();
-            var fakeDestinationRepository = new SourceControlSync.Domain.Fakes.StubIDestinationRepository();
-            IChangesReport fakeChangesReport = new SourceControlSync.Domain.Fakes.StubIChangesReport();
-            IErrorReport fakeErrorReport = new SourceControlSync.Domain.Fakes.StubIErrorReport()
-            {
-                ExceptionSetException = (ex) => { reportException = ex; },
-                ExceptionGet = () => { return reportException; },
-                RequestSetString = (evt) => { reportRequest = evt; },
-                RequestGet = () => { return reportRequest; },
-                HasMessageGet = () => { return reportException != null; },
-                ToMailMessage = () => { return new System.Net.Mail.MailMessage(); }
-            };
-            #endregion
-
-            using (var controller = CreateVSOController(
-                fakeSourceRepository, 
-                fakeDestinationRepository, 
-                fakeChangesCalculator, 
-                fakeChangesReport, 
-                fakeErrorReport
-                ))
-            {
-                var result = controller.PostAsync(pushEvent, CancellationToken.None).Result;
+                var token = new CancellationToken(true);
+                var result = controller.PostAsync(pushEvent, token).Result;
 
                 Assert.IsInstanceOfType(result, typeof(ExceptionResult));
                 Assert.IsNotNull(fakeErrorReport.Request);
@@ -272,27 +196,22 @@ namespace SourceControlSync.WebApi.Tests
             return push;
         }
 
-        private static VSOController CreateVSOController(
-            ISourceRepository sourceRepository, 
-            IDestinationRepository destinationRepository,
-            IChangesCalculator changesCalculator, 
-            IChangesReport changesReport, 
-            IErrorReport errorReport)
+        private VSOController CreateVSOController()
         {
             var fakeSourceRepositoryFactory = new SourceControlSync.Domain.Fakes.StubISourceRepositoryFactory()
             {
-                CreateSourceRepositoryString = (connectionString) => { return sourceRepository; }
+                CreateSourceRepositoryString = (connectionString) => { return fakeSourceRepository; }
             };
             var fakeDestinationRepositoryFactory = new SourceControlSync.Domain.Fakes.StubIDestinationRepositoryFactory()
             {
-                CreateDestinationRepositoryString = (connectionString) => { return destinationRepository; }
+                CreateDestinationRepositoryString = (connectionString) => { return fakeDestinationRepository; }
             };
             var controller = new VSOController(
                 fakeSourceRepositoryFactory, 
                 fakeDestinationRepositoryFactory, 
-                changesCalculator, 
-                changesReport, 
-                errorReport
+                fakeChangesCalculator, 
+                fakeChangesReport, 
+                fakeErrorReport
                 );
             controller.Request = new HttpRequestMessage(HttpMethod.Post, "");
             controller.Request.Headers.Add(VSOController.HEADER_SOURCE_CONNECTIONSTRING, "");

@@ -37,11 +37,11 @@ namespace SourceControlSync.DataAWS
         {
             _executedCommands.Clear();
 
+            var commands = _itemChanges.CreateItemCommands();
             using (var s3Client = CreateS3Client())
             {
-                foreach (var itemChange in _itemChanges)
+                foreach (var command in commands)
                 {
-                    var command = CreateItemCommand(itemChange);
                     await command.ExecuteOnDestinationAsync(s3Client, _bucket.BucketName, token);
                     _executedCommands.Add(command);
                 }
@@ -70,22 +70,6 @@ namespace SourceControlSync.DataAWS
                 string.IsNullOrWhiteSpace(_credentials.SecretAccessKey))
             {
                 throw new ApplicationException("Invalid credentials");
-            }
-        }
-
-        private static IItemCommand CreateItemCommand(ItemChange itemChange)
-        {
-            if ((itemChange.ChangeType & ItemChangeType.Delete) != 0)
-            {
-                return new DeleteItemCommand(itemChange);
-            }
-            else if (itemChange.NewContent != null)
-            {
-                return new UploadItemCommand(itemChange);
-            }
-            else
-            {
-                return new NullItemCommand();
             }
         }
     }

@@ -49,6 +49,7 @@
     <Compile Include="DeleteItemCommand.cs" />
     <Compile Include="ExecutedCommands.cs" />
     <Compile Include="IItemCommand.cs" />
+    <Compile Include="ItemChangeExtensions.cs" />
     <Compile Include="NullItemCommand.cs" />
     <Compile Include="Resources.Designer.cs">
       <AutoGen>True</AutoGen>
