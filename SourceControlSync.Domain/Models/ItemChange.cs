@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -53,11 +54,38 @@ namespace SourceControlSync.Domain.Models
 
             if (Item.ContentMetadata.IsBinary)
             {
-                NewContent = await ItemContent.CreateItemContentFromBinaryStreamAsync(content, token);
+                NewContent = await CreateItemContentFromBinaryStreamAsync(content, token);
             }
             else
             {
-                NewContent = await ItemContent.CreateItemContentFromTextStreamAsync(content, Item.ContentMetadata.Encoding);
+                NewContent = await CreateItemContentFromTextStreamAsync(content, Item.ContentMetadata.Encoding);
+            }
+        }
+
+        private async Task<ItemContent> CreateItemContentFromBinaryStreamAsync(Stream content, CancellationToken token)
+        {
+            using (var memoryStream = new MemoryStream())
+            {
+                const int BUFFER_SIZE = 4096;
+                await content.CopyToAsync(memoryStream, BUFFER_SIZE, cancellationToken: token);
+                var bytes = memoryStream.ToArray();
+                return new ItemContent()
+                {
+                    ContentType = ItemContentType.Base64Encoded,
+                    Content = Convert.ToBase64String(bytes)
+                };
+            }
+        }
+
+        private async Task<ItemContent> CreateItemContentFromTextStreamAsync(Stream content, Encoding encoding)
+        {
+            using (var streamReader = new StreamReader(content, encoding))
+            {
+                return new ItemContent()
+                {
+                    ContentType = ItemContentType.RawText,
+                    Content = await streamReader.ReadToEndAsync()
+                };
             }
         }
 
