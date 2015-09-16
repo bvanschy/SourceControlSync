@@ -7,6 +7,11 @@ namespace SourceControlSync.Domain.Models
 {
     public class UserDate
     {
-        public DateTime Date { get; set; }
+        public UserDate(DateTime date)
+        {
+            Date = date;
+        }
+
+        public DateTime Date { get; private set; }
     }
 }

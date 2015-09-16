@@ -8,7 +8,14 @@ namespace SourceControlSync.Domain.Models
 {
     public class Push
     {
-        public IEnumerable<Commit> Commits { get; set; }
-        public Repository Repository { get; set; }
+        public Push(Repository repository, IEnumerable<Commit> commits)
+        {
+            Repository = repository;
+            Commits = commits.ToList();
+        }
+
+        public Repository Repository { get; private set; }
+
+        public IEnumerable<Commit> Commits { get; private set; }
     }
 }

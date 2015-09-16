@@ -42,15 +42,15 @@ namespace SourceControlSync.Domain
 
         private async Task DownloadChangesInCommitAsync(Commit commit)
         {
-            await _downloadRequest.DownloadChangesInCommitAsync(commit, _push.Repository.Id, _token);
-            commit.Changes = commit.Changes.Where(c => c.Item.IsInRoot(_root)).ToArray();
+            var changes = await _downloadRequest.DownloadChangesInCommitAsync(commit.CommitId, _push.Repository.Id, _token);
+            commit.Changes = changes.Where(c => c.Item.IsInRoot(_root));
         }
 
         private async Task DownloadItemAndContentInChangesAsync(Commit commit)
         {
             var tasks = from change in commit.Changes
                         where ChangeTypeHasContent(change)
-                        select _downloadRequest.DownloadItemAndContentInCommitAsync(change, commit, _push.Repository.Id, _token);
+                        select _downloadRequest.DownloadItemAndContentInCommitAsync(change, commit.CommitId, _push.Repository.Id, _token);
             await Task.WhenAll(tasks);
         }
 

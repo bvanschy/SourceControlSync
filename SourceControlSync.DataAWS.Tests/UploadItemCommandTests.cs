@@ -56,23 +56,13 @@ namespace SourceControlSync.DataAWS.Tests
 
         private ItemChange CreateItemChange()
         {
-            return new ItemChange()
+            var item = new Item("test/test.txt")
             {
-                ChangeType = ItemChangeType.Add,
-                Item = new Item()
-                {
-                    ContentMetadata = new FileContentMetadata()
-                    {
-                        ContentType = "text/plain",
-                        Encoding = Encoding.UTF8
-                    },
-                    Path = "test/test.txt"
-                },
-                NewContent = new ItemContent()
-                {
-                    ContentType = ItemContentType.RawText,
-                    Content = "This is a test"
-                }
+                ContentMetadata = new FileContentMetadata("text/plain", Encoding.UTF8)
+            };
+            return new ItemChange(ItemChangeType.Add, item)
+            {
+                NewContent = new ItemContent(ItemContentType.RawText, "This is a test")
             };
         }
 

@@ -1,16 +1,26 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System.Text;
 
 namespace SourceControlSync.Domain.Models
 {
     public class FileContentMetadata
     {
-        public bool IsBinary { get; set; }
+        public FileContentMetadata(string contentType, Encoding encoding)
+        {
+            IsBinary = false;
+            ContentType = contentType;
+            Encoding = encoding;
+        }
 
-        public string ContentType { get; set; }
+        public FileContentMetadata(string contentType)
+        {
+            IsBinary = true;
+            ContentType = contentType;
+        }
 
-        public Encoding Encoding { get; set; }
+        public bool IsBinary { get; private set; }
+
+        public string ContentType { get; private set; }
+
+        public Encoding Encoding { get; private set; }
     }
 }

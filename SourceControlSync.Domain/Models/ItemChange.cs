@@ -21,9 +21,30 @@ namespace SourceControlSync.Domain.Models
 
     public class ItemChange
     {
-        public ItemChangeType ChangeType { get; set; }
-        public Item Item { get; set; }
-        public ItemContent NewContent { get; set; }
+        private ItemContent _newContent;
+
+        public ItemChange(ItemChangeType changeType, Item item)
+        {
+            ChangeType = changeType;
+            Item = item;
+        }
+
+        public ItemChangeType ChangeType { get; private set; }
+
+        public Item Item { get; private set; }
+
+        public ItemContent NewContent 
+        {
+            get { return _newContent; }
+            set
+            {
+                if (_newContent != null)
+                {
+                    throw new InvalidOperationException("NewContent is immutable");
+                }
+                _newContent = value;
+            }
+        }
 
         public Stream CreateContentStream()
         {
@@ -69,11 +90,7 @@ namespace SourceControlSync.Domain.Models
                 const int BUFFER_SIZE = 4096;
                 await content.CopyToAsync(memoryStream, BUFFER_SIZE, cancellationToken: token);
                 var bytes = memoryStream.ToArray();
-                return new ItemContent()
-                {
-                    ContentType = ItemContentType.Base64Encoded,
-                    Content = Convert.ToBase64String(bytes)
-                };
+                return new ItemContent(ItemContentType.Base64Encoded, Convert.ToBase64String(bytes));
             }
         }
 
@@ -81,11 +98,8 @@ namespace SourceControlSync.Domain.Models
         {
             using (var streamReader = new StreamReader(content, encoding))
             {
-                return new ItemContent()
-                {
-                    ContentType = ItemContentType.RawText,
-                    Content = await streamReader.ReadToEndAsync()
-                };
+                var contentText = await streamReader.ReadToEndAsync();
+                return new ItemContent(ItemContentType.RawText, contentText);
             }
         }
 

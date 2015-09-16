@@ -35,16 +35,20 @@ namespace SourceControlSync.Domain
         {
             return from change in _itemChanges
                    where !string.IsNullOrEmpty(change.Item.Path) && change.Item.IsInRoot(_root)
-                   select new ItemChange()
-                   {
-                       ChangeType = change.ChangeType,
-                       Item = new Item()
-                       {
-                           ContentMetadata = change.Item.ContentMetadata,
-                           Path = change.Item.Path.Substring(_root.Length)
-                       },
-                       NewContent = change.NewContent
-                   };
+                   select CreateItemChangeInRoot(change);
         }
+
+        private ItemChange CreateItemChangeInRoot(ItemChange change)
+        {
+            var item = new Item(change.Item.Path.Substring(_root.Length))
+            {
+                ContentMetadata = change.Item.ContentMetadata,
+            };
+            return new ItemChange(change.ChangeType, item)
+            {
+                NewContent = change.NewContent
+            };
+        }
+
     }
 }

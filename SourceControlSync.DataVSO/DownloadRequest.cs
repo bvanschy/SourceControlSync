@@ -30,29 +30,34 @@ namespace SourceControlSync.DataVSO
             _credentials = credentials;
         }
 
-        public async Task DownloadChangesInCommitAsync(Commit commit, Guid repositoryId, CancellationToken token)
+        public async Task<IEnumerable<ItemChange>> DownloadChangesInCommitAsync(string commitId, Guid repositoryId, CancellationToken token)
         {
             CreateHttpClient();
-            var commitChanges = await _httpClient.GetChangesAsync(commit.CommitId, repositoryId,
-                                        cancellationToken: token);
-            commit.Changes = commitChanges.Changes.ToSync();
+            var commitChanges = await _httpClient.GetChangesAsync(
+                commitId,
+                repositoryId,
+                cancellationToken: token
+                );
+            return commitChanges.Changes.ToSync();
         }
 
-        public async Task DownloadItemAndContentInCommitAsync(ItemChange change, Commit commit, Guid repositoryId, CancellationToken token)
+        public async Task DownloadItemAndContentInCommitAsync(ItemChange change, string commitId, Guid repositoryId, CancellationToken token)
         {
             CreateHttpClient();
 
-            var item = await _httpClient.GetItemAsync(repositoryId, change.Item.Path,
-                                includeContentMetadata: true,
-                                versionDescriptor: new Microsoft.TeamFoundation.SourceControl.WebApi.GitVersionDescriptor()
-                                {
-                                    VersionType = Microsoft.TeamFoundation.SourceControl.WebApi.GitVersionType.Commit,
-                                    Version = commit.CommitId
-                                },
-                                cancellationToken: token);
+            var item = await _httpClient.GetItemAsync(
+                repositoryId,
+                change.Item.Path,
+                includeContentMetadata: true,
+                versionDescriptor: new Microsoft.TeamFoundation.SourceControl.WebApi.GitVersionDescriptor()
+                {
+                    VersionType = Microsoft.TeamFoundation.SourceControl.WebApi.GitVersionType.Commit,
+                    Version = commitId
+                },
+                cancellationToken: token
+                );
 
-            var content = await _httpClient.GetBlobContentAsync(repositoryId, item.ObjectId,
-                                cancellationToken: token);
+            var content = await _httpClient.GetBlobContentAsync(repositoryId, item.ObjectId, cancellationToken: token);
 
             change.Item.ContentMetadata = item.ContentMetadata.ToSync();
             await change.SetNewContentAsync(content, token);

@@ -19,30 +19,22 @@ namespace SourceControlSync.DataVSO
 
         public static Push ToSync(this Microsoft.TeamFoundation.SourceControl.WebApi.GitPush push)
         {
-            return new Push()
-            {
-                Commits = push.Commits != null ? push.Commits.ToSync() : null,
-                Repository = push.Repository != null ? push.Repository.ToSync() : null
-            };
+            var repository = push.Repository != null ? push.Repository.ToSync() : null;
+            var commits = push.Commits != null ? push.Commits.ToSync() : null;
+            return new Push(repository, commits);
         }
 
-        public static IEnumerable<Commit> ToSync(this IEnumerable<Microsoft.TeamFoundation.SourceControl.WebApi.GitCommitRef> commits)
+        private static IEnumerable<Commit> ToSync(this IEnumerable<Microsoft.TeamFoundation.SourceControl.WebApi.GitCommitRef> commits)
         {
-            return commits.Select(c => new Commit()
+            return commits.Select(c => new Commit(c.CommitId, c.Committer != null ? c.Committer.ToSync() : null)
                 {
-                    Changes = c.Changes != null ? c.Changes.ToSync() : null,
-                    CommitId = c.CommitId,
-                    Committer = c.Committer != null ? c.Committer.ToSync() : null
-                }).ToArray();
+                    Changes = c.Changes != null ? c.Changes.ToSync() : null
+                });
         }
 
         public static IEnumerable<ItemChange> ToSync(this IEnumerable<Microsoft.TeamFoundation.SourceControl.WebApi.GitChange> changes)
         {
-            return changes.Select(c => new ItemChange()
-                {
-                    ChangeType = c.ChangeType.ToSync(),
-                    Item = c.Item != null ? c.Item.ToSync() : null
-                }).ToArray();
+            return changes.Select(c => new ItemChange(c.ChangeType.ToSync(), c.Item != null ? c.Item.ToSync() : null));
         }
 
         public static ItemChangeType ToSync(this Microsoft.TeamFoundation.SourceControl.WebApi.VersionControlChangeType changeType)
@@ -81,40 +73,29 @@ namespace SourceControlSync.DataVSO
 
         public static Item ToSync(this Microsoft.TeamFoundation.SourceControl.WebApi.GitItem item)
         {
-            return new Item()
-            {
-                Path = item.Path
-            };
+            return new Item(item.Path);
         }
 
         public static FileContentMetadata ToSync(this Microsoft.TeamFoundation.SourceControl.WebApi.FileContentMetadata metadata)
         {
-            var newMetadata = new FileContentMetadata()
+            if (metadata.IsBinary)
             {
-                ContentType = metadata.ContentType,
-                IsBinary = metadata.IsBinary
-            };
-            if (!metadata.IsBinary)
-            {
-                newMetadata.Encoding = Encoding.GetEncoding(metadata.Encoding);
+                return new FileContentMetadata(metadata.ContentType);
             }
-            return newMetadata;
+            else
+            {
+                return new FileContentMetadata(metadata.ContentType, Encoding.GetEncoding(metadata.Encoding));
+            }
         }
 
         public static UserDate ToSync(this Microsoft.TeamFoundation.SourceControl.WebApi.GitUserDate userDate)
         {
-            return new UserDate()
-            {
-                Date = userDate.Date
-            };
+            return new UserDate(userDate.Date);
         }
 
         public static Repository ToSync(this Microsoft.TeamFoundation.SourceControl.WebApi.GitRepository repo)
         {
-            return new Repository()
-            {
-                Id = repo.Id
-            };
+            return new Repository(repo.Id);
         }
     }
 }

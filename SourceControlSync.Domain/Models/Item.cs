@@ -7,8 +7,27 @@ namespace SourceControlSync.Domain.Models
 {
     public class Item
     {
-        public FileContentMetadata ContentMetadata { get; set; }
-        public string Path { get; set; }
+        private FileContentMetadata _contentMetadata;
+
+        public Item(string path)
+        {
+            Path = path;
+        }
+
+        public string Path { get; private set; }
+
+        public FileContentMetadata ContentMetadata 
+        {
+            get { return _contentMetadata; }
+            set
+            {
+                if (_contentMetadata != null)
+                {
+                    throw new InvalidOperationException("ContentMetadata is immutable");
+                }
+                _contentMetadata = value;
+            }
+        }
 
         public bool IsInRoot(string root)
         {

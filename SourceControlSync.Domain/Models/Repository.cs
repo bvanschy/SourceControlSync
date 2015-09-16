@@ -7,6 +7,11 @@ namespace SourceControlSync.Domain.Models
 {
     public class Repository
     {
-        public Guid Id { get; set; }
+        public Repository(Guid id)
+        {
+            Id = id;
+        }
+
+        public Guid Id { get; private set; }
     }
 }

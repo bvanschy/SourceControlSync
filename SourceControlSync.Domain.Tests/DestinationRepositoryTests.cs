@@ -2,6 +2,7 @@
 using SourceControlSync.Domain.Models;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace SourceControlSync.Domain.Tests
@@ -12,18 +13,15 @@ namespace SourceControlSync.Domain.Tests
         [TestMethod]
         public void PushItemChange()
         {
-            var itemChanges = new List<ItemChange>()
+            var item = new Item("/test/test.txt") 
             {
-                new ItemChange()
-                {
-                    Item = new Item() 
-                    {
-                        ContentMetadata = new FileContentMetadata(),
-                        Path = "/test/test.txt" 
-                    },
-                    NewContent = new ItemContent()
-                }
+                ContentMetadata = new FileContentMetadata("text/plain", Encoding.UTF8)
             };
+            var itemChange = new ItemChange(ItemChangeType.Add, item)
+            {
+                NewContent = new ItemContent(ItemContentType.RawText, "Testing")
+            };
+            var itemChanges = new ItemChange[] { itemChange };
             IEnumerable<ItemChange> itemChangesAdded = null;
             bool saveChangesCalled = false;
             var fakeContext = new Fakes.StubIDestinationContext()
@@ -41,8 +39,8 @@ namespace SourceControlSync.Domain.Tests
 
             Assert.IsNotNull(itemChangesAdded);
             Assert.AreEqual("test/test.txt", itemChangesAdded.Single().Item.Path);
-            Assert.AreSame(itemChanges.Single().Item.ContentMetadata, itemChangesAdded.Single().Item.ContentMetadata);
-            Assert.AreSame(itemChanges.Single().NewContent, itemChangesAdded.Single().NewContent);
+            Assert.AreSame(itemChange.Item.ContentMetadata, itemChangesAdded.Single().Item.ContentMetadata);
+            Assert.AreSame(itemChange.NewContent, itemChangesAdded.Single().NewContent);
             Assert.IsTrue(saveChangesCalled);
         }
     }

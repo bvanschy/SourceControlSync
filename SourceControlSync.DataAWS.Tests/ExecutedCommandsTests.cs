@@ -18,8 +18,8 @@ namespace SourceControlSync.DataAWS.Tests
         {
             var commands = new List<IItemCommand>()
             {
-                new DeleteItemCommand(new ItemChange() { Item = new Item() { Path = "index2.html" } }),
-                new UploadItemCommand(new ItemChange() { Item = new Item() { Path = "index.html" } }),
+                new DeleteItemCommand(new ItemChange(ItemChangeType.Delete, new Item("index2.html"))),
+                new UploadItemCommand(new ItemChange(ItemChangeType.Add, new Item("index.html"))),
                 new NullItemCommand()
             };
             var executedCommands = new ExecutedCommands(commands);
@@ -37,8 +37,8 @@ namespace SourceControlSync.DataAWS.Tests
             Thread.CurrentThread.CurrentUICulture = new CultureInfo("fr-CA");
             var commands = new List<IItemCommand>()
             {
-                new DeleteItemCommand(new ItemChange() { Item = new Item() { Path = "index2.html" } }),
-                new UploadItemCommand(new ItemChange() { Item = new Item() { Path = "index.html" } }),
+                new DeleteItemCommand(new ItemChange(ItemChangeType.Delete, new Item("index2.html"))),
+                new UploadItemCommand(new ItemChange(ItemChangeType.Add, new Item("index.html"))),
                 new NullItemCommand()
             };
             var executedCommands = new ExecutedCommands(commands);

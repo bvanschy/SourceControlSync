@@ -12,9 +12,15 @@ namespace SourceControlSync.Domain.Models
 
     public class ItemContent
     {
-        public ItemContentType ContentType { get; set; }
+        public ItemContent(ItemContentType contentType, string content)
+        {
+            ContentType = contentType;
+            Content = content;
+        }
 
-        public string Content { get; set; }
+        public ItemContentType ContentType { get; private set; }
+
+        public string Content { get; private set; }
 
         public void WriteToStream(Stream contentStream, Encoding encoding)
         {

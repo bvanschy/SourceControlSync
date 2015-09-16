@@ -14,20 +14,13 @@ namespace SourceControlSync.Domain.Tests
         [TestMethod]
         public void CreateTextStream()
         {
-            var itemChange = new ItemChange()
+            var item = new Item(string.Empty)
             {
-                Item = new Item()
-                {
-                    ContentMetadata = new FileContentMetadata()
-                    {
-                        Encoding = Encoding.UTF8
-                    }
-                },
-                NewContent = new ItemContent()
-                {
-                    ContentType = ItemContentType.RawText,
-                    Content = "Testing"
-                }
+                ContentMetadata = new FileContentMetadata("text/plain", Encoding.UTF8)
+            };
+            var itemChange = new ItemChange(ItemChangeType.None, item)
+            {
+                NewContent = new ItemContent(ItemContentType.RawText, "Testing")
             };
 
             using (var stream = itemChange.CreateContentStream())
@@ -40,18 +33,14 @@ namespace SourceControlSync.Domain.Tests
         [TestMethod]
         public void CreateBinaryStream()
         {
-            byte[] content = Encoding.UTF8.GetBytes("Testing");
-            var itemChange = new ItemChange()
+            var item = new Item(string.Empty)
             {
-                Item = new Item()
-                {
-                    ContentMetadata = new FileContentMetadata() { IsBinary = true }
-                },
-                NewContent = new ItemContent()
-                {
-                    ContentType = ItemContentType.Base64Encoded,
-                    Content = Convert.ToBase64String(content)
-                }
+                ContentMetadata = new FileContentMetadata("image/x-icon")
+            };
+            byte[] content = Encoding.UTF8.GetBytes("Testing");
+            var itemChange = new ItemChange(ItemChangeType.None, item)
+            {
+                NewContent = new ItemContent(ItemContentType.Base64Encoded, Convert.ToBase64String(content))
             };
 
             using (var stream = itemChange.CreateContentStream())
@@ -65,17 +54,11 @@ namespace SourceControlSync.Domain.Tests
         [TestMethod]
         public void CreateTextItemContent()
         {
-            var itemChange = new ItemChange()
+            var item = new Item(string.Empty)
             {
-                Item = new Item()
-                {
-                    ContentMetadata = new FileContentMetadata()
-                    {
-                        Encoding = Encoding.UTF8,
-                        IsBinary = false
-                    }
-                }
+                ContentMetadata = new FileContentMetadata("text/plain", Encoding.UTF8)
             };
+            var itemChange = new ItemChange(ItemChangeType.None, item);
 
             var testData = "Testing";
             using (var memoryStream = new MemoryStream(Encoding.UTF8.GetBytes(testData)))
@@ -90,16 +73,11 @@ namespace SourceControlSync.Domain.Tests
         [TestMethod]
         public void CreateBinaryItemContext()
         {
-            var itemChange = new ItemChange()
+            var item = new Item(string.Empty)
             {
-                Item = new Item()
-                {
-                    ContentMetadata = new FileContentMetadata()
-                    {
-                        IsBinary = true
-                    }
-                }
+                ContentMetadata = new FileContentMetadata("image/x-icon")
             };
+            var itemChange = new ItemChange(ItemChangeType.None, item);
 
             var testData = Encoding.UTF8.GetBytes("Testing");
             using (var memoryStream = new MemoryStream(testData))

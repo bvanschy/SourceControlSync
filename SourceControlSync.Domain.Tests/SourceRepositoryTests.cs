@@ -18,23 +18,22 @@ namespace SourceControlSync.Domain.Tests
         [TestMethod]
         public void DownloadCommitWithChanges()
         {
-            var commitId = "1b1859c414e800d24036b9ee547d1530431ae055";
-            var push = CreatePushRequest(commitId);
-            var fakeChanges = new ItemChange[] { new ItemChange() { Item = new Item() { Path = "/index.html" } } };
+            var commitIdRequest = "1b1859c414e800d24036b9ee547d1530431ae055";
+            var pushRequest = CreatePushRequest(commitIdRequest);
+            var fakeChanges = new ItemChange[] { new ItemChange(ItemChangeType.None, new Item("/index.html")) };
             var fakeDownloadRequest = new Fakes.StubIDownloadRequest()
             {
-                DownloadChangesInCommitAsyncCommitGuidCancellationToken = (commit, repositoryId, token) =>
+                DownloadChangesInCommitAsyncStringGuidCancellationToken = (commitId, repositoryId, token) =>
                 {
-                    Assert.AreEqual(commitId, commit.CommitId);
-                    commit.Changes = fakeChanges;
-                    return Task.FromResult(0);
+                    Assert.AreEqual(commitIdRequest, commitId);
+                    return Task.FromResult(fakeChanges.AsEnumerable());
                 }
             };
             var repo = new SourceRepository(fakeDownloadRequest);
 
-            repo.DownloadChangesAsync(push, "/", CancellationToken.None).Wait();
+            repo.DownloadChangesAsync(pushRequest, "/", CancellationToken.None).Wait();
 
-            Assert.IsTrue(fakeChanges.SequenceEqual(push.Commits.Single().Changes));
+            Assert.IsTrue(fakeChanges.SequenceEqual(pushRequest.Commits.Single().Changes));
         }
 
         [TestMethod]
@@ -43,15 +42,15 @@ namespace SourceControlSync.Domain.Tests
             var push = CreatePushRequest("5597f65ce55386a771e4bf6fa190b5a26c0f5ce5");
             var fakeDownloadRequest = new Fakes.StubIDownloadRequest()
             {
-                DownloadChangesInCommitAsyncCommitGuidCancellationToken = (commit, repositoryId, token) =>
+                DownloadChangesInCommitAsyncStringGuidCancellationToken = (commitId, repositoryId, token) =>
                 {
-                    commit.Changes = new ItemChange[]
+                    var changes = new ItemChange[]
                         {
-                            new ItemChange() { ChangeType = ItemChangeType.Add, Item = new Item() { Path = "/index.html" }}
+                            new ItemChange(ItemChangeType.Add, new Item("/index.html"))
                         };
-                    return Task.FromResult(0);
+                    return Task.FromResult(changes.AsEnumerable());
                 },
-                DownloadItemAndContentInCommitAsyncItemChangeCommitGuidCancellationToken = (itemChange, commit, repositoryId, token) =>
+                DownloadItemAndContentInCommitAsyncItemChangeStringGuidCancellationToken = (itemChange, commitId, repositoryId, token) =>
                 {
                     itemChange.Item.ContentMetadata = CreateTextContentMetadataTestData();
                     itemChange.NewContent = CreateTextContentTestData();
@@ -79,16 +78,16 @@ namespace SourceControlSync.Domain.Tests
             var push = CreatePushRequest("de3e7a550c40fe75085d11e81d5770bc5b0dd33c");
             var fakeDownloadRequest = new Fakes.StubIDownloadRequest()
             {
-                DownloadChangesInCommitAsyncCommitGuidCancellationToken = (commit, repositoryId, token) =>
+                DownloadChangesInCommitAsyncStringGuidCancellationToken = (commitId, repositoryId, token) =>
                 {
-                    commit.Changes = new ItemChange[]
+                    var changes = new ItemChange[]
                         {
-                            new ItemChange() { ChangeType = ItemChangeType.Rename, Item = new Item() { Path = "/index.html" }},
-                            new ItemChange() { ChangeType = ItemChangeType.Delete | ItemChangeType.SourceRename, Item = new Item() { Path = "/index2.html" }}
+                            new ItemChange(ItemChangeType.Rename, new Item("/index.html")),
+                            new ItemChange(ItemChangeType.Delete | ItemChangeType.SourceRename, new Item("/index2.html"))
                         };
-                    return Task.FromResult(0);
+                    return Task.FromResult(changes.AsEnumerable());
                 },
-                DownloadItemAndContentInCommitAsyncItemChangeCommitGuidCancellationToken = (itemChange, commit, repositoryId, token) =>
+                DownloadItemAndContentInCommitAsyncItemChangeStringGuidCancellationToken = (itemChange, commitId, repositoryId, token) =>
                 {
                     if (itemChange.Item.Path == "/index.html")
                     {
@@ -121,16 +120,16 @@ namespace SourceControlSync.Domain.Tests
             var push = CreatePushRequest("a620293e7300c85234c5109e9cd9bb056942fbd6");
             var fakeDownloadRequest = new Fakes.StubIDownloadRequest()
             {
-                DownloadChangesInCommitAsyncCommitGuidCancellationToken = (commit, repositoryId, token) =>
+                DownloadChangesInCommitAsyncStringGuidCancellationToken = (commitId, repositoryId, token) =>
                 {
-                    commit.Changes = new ItemChange[]
+                    var changes = new ItemChange[]
                         {
-                            new ItemChange() { ChangeType = ItemChangeType.Delete | ItemChangeType.SourceRename, Item = new Item() { Path = "/index.html" }},
-                            new ItemChange() { ChangeType = ItemChangeType.Edit | ItemChangeType.Rename, Item = new Item() { Path = "/index3.html" }}
+                            new ItemChange(ItemChangeType.Delete | ItemChangeType.SourceRename, new Item("/index.html")),
+                            new ItemChange(ItemChangeType.Edit | ItemChangeType.Rename, new Item("/index3.html"))
                         };
-                    return Task.FromResult(0);
+                    return Task.FromResult(changes.AsEnumerable());
                 },
-                DownloadItemAndContentInCommitAsyncItemChangeCommitGuidCancellationToken = (itemChange, commit, repositoryId, token) =>
+                DownloadItemAndContentInCommitAsyncItemChangeStringGuidCancellationToken = (itemChange, commitId, repositoryId, token) =>
                 {
                     if (itemChange.Item.Path == "/index3.html")
                     {
@@ -163,15 +162,15 @@ namespace SourceControlSync.Domain.Tests
             var push = CreatePushRequest("b6f447775f71a092854a2555eea084bd6d19958e");
             var fakeDownloadRequest = new Fakes.StubIDownloadRequest()
             {
-                DownloadChangesInCommitAsyncCommitGuidCancellationToken = (commit, repositoryId, token) =>
+                DownloadChangesInCommitAsyncStringGuidCancellationToken = (commitId, repositoryId, token) =>
                 {
-                    commit.Changes = new ItemChange[]
+                    var changes = new ItemChange[]
                         {
-                            new ItemChange() { ChangeType = ItemChangeType.Add, Item = new Item() { Path = "/favicon.ico" }}
+                            new ItemChange(ItemChangeType.Add, new Item("/favicon.ico"))
                         };
-                    return Task.FromResult(0);
+                    return Task.FromResult(changes.AsEnumerable());
                 },
-                DownloadItemAndContentInCommitAsyncItemChangeCommitGuidCancellationToken = (itemChange, commit, repositoryId, token) =>
+                DownloadItemAndContentInCommitAsyncItemChangeStringGuidCancellationToken = (itemChange, commitId, repositoryId, token) =>
                 {
                     itemChange.Item.ContentMetadata = CreateBinaryContentMetadataTestData();
                     itemChange.NewContent = CreateBinaryContentTestData();
@@ -209,12 +208,12 @@ namespace SourceControlSync.Domain.Tests
             var changesByCommit = GetChangesTestData();
             var fakeDownloadRequest = new Fakes.StubIDownloadRequest()
             {
-                DownloadChangesInCommitAsyncCommitGuidCancellationToken = (commit, repositoryId, token) =>
+                DownloadChangesInCommitAsyncStringGuidCancellationToken = (commitId, repositoryId, token) =>
                 {
-                    commit.Changes = changesByCommit[commit.CommitId];
-                    return Task.FromResult(0);
+                    var changes = changesByCommit[commitId];
+                    return Task.FromResult(changes.AsEnumerable());
                 },
-                DownloadItemAndContentInCommitAsyncItemChangeCommitGuidCancellationToken = (itemChange, commit, repositoryId, token) =>
+                DownloadItemAndContentInCommitAsyncItemChangeStringGuidCancellationToken = (itemChange, commitId, repositoryId, token) =>
                 {
                     return Task.FromResult(0);
                 }
@@ -232,14 +231,14 @@ namespace SourceControlSync.Domain.Tests
             var push = CreatePushRequest("1b1859c414e800d24036b9ee547d1530431ae055");
             var fakeDownloadRequest = new Fakes.StubIDownloadRequest()
             {
-                DownloadChangesInCommitAsyncCommitGuidCancellationToken = (commit, repositoryId, token) =>
+                DownloadChangesInCommitAsyncStringGuidCancellationToken = (commit, repositoryId, token) =>
                 {
-                    commit.Changes = new ItemChange[] 
+                    var changes = new ItemChange[] 
                         { 
-                            new ItemChange() { ChangeType = ItemChangeType.Edit, Item = new Item() { Path = "/index.html" }},
-                            new ItemChange() { ChangeType = ItemChangeType.Add, Item = new Item() { Path = "/index2.html" }}
+                            new ItemChange(ItemChangeType.Edit, new Item("/index.html")),
+                            new ItemChange(ItemChangeType.Add, new Item("/index2.html"))
                         };
-                    return Task.FromResult(0);
+                    return Task.FromResult(changes.AsEnumerable());
                 }
             };
             var repo = new SourceRepository(fakeDownloadRequest);
@@ -251,29 +250,26 @@ namespace SourceControlSync.Domain.Tests
 
         private static Push CreatePushRequest(string commitId)
         {
-            var push = new Push()
-            {
-                Commits = new Commit[] { new Commit() { CommitId = commitId } },
-                Repository = new Repository() { Id = Guid.NewGuid() }
-            };
+            var push = new Push(
+                new Repository(Guid.NewGuid()), 
+                new Commit[] { new Commit(commitId, new UserDate(DateTime.Now)) }
+                );
             return push;
         }
 
-        private static Push CreatePushRequest(Dictionary<string, string> commits)
+        private static Push CreatePushRequest(Dictionary<string, string> commitIdsAndDates)
         {
-            var push = new Push()
-            {
-                Commits = commits.Select(c => new Commit() 
-                { 
-                    CommitId = c.Key,
-                    Committer = new UserDate() 
-                    { 
-                        Date = DateTime.ParseExact(c.Value, "yyyy'-'MM'-'dd'T'HH':'mm':'ss'Z'", CultureInfo.InvariantCulture) 
-                    }
-                }).ToArray(),
-                Repository = new Repository() { Id = Guid.NewGuid() }
-            };
+            var commits = commitIdsAndDates.Select(c => CreateCommit(c));
+            var push = new Push(new Repository(Guid.NewGuid()), commits);
             return push;
+        }
+
+        private static Commit CreateCommit(KeyValuePair<string, string> kvp)
+        {
+            return new Commit(
+                kvp.Key, 
+                new UserDate(DateTime.ParseExact(kvp.Value, "yyyy'-'MM'-'dd'T'HH':'mm':'ss'Z'", CultureInfo.InvariantCulture))
+                );
         }
 
         private static IDictionary<string, IEnumerable<ItemChange>> GetChangesTestData()
@@ -284,52 +280,52 @@ namespace SourceControlSync.Domain.Tests
                         "5597f65ce55386a771e4bf6fa190b5a26c0f5ce5", 
                         new ItemChange[]
                         {
-                            new ItemChange() { ChangeType = ItemChangeType.Add, Item = new Item() { Path = "/index.html" }}
+                            new ItemChange(ItemChangeType.Add, new Item("/index.html"))
                         }
                     },
                     { 
                         "1b1859c414e800d24036b9ee547d1530431ae055", 
                         new ItemChange[] 
                         { 
-                            new ItemChange() { ChangeType = ItemChangeType.Edit, Item = new Item() { Path = "/index.html" }},
-                            new ItemChange() { ChangeType = ItemChangeType.Add, Item = new Item() { Path = "/index2.html" }}
+                            new ItemChange(ItemChangeType.Edit, new Item("/index.html")),
+                            new ItemChange(ItemChangeType.Add, new Item("/index2.html"))
                         }
                     },
                     {
                         "be993da1b6b79d0a9361b89fd980000ca7f03823",
                         new ItemChange[]
                         {
-                            new ItemChange() { ChangeType = ItemChangeType.Delete, Item = new Item() { Path = "/index.html" }}
+                            new ItemChange(ItemChangeType.Delete, new Item("/index.html"))
                         }
                     },
                     {
                         "de3e7a550c40fe75085d11e81d5770bc5b0dd33c",
                         new ItemChange[]
                         {
-                            new ItemChange() { ChangeType = ItemChangeType.Rename, Item = new Item() { Path = "/index.html" }},
-                            new ItemChange() { ChangeType = ItemChangeType.Delete | ItemChangeType.SourceRename, Item = new Item() { Path = "/index2.html" }}
+                            new ItemChange(ItemChangeType.Rename, new Item("/index.html")),
+                            new ItemChange(ItemChangeType.Delete | ItemChangeType.SourceRename, new Item("/index2.html"))
                         }
                     },
                     {
                         "a620293e7300c85234c5109e9cd9bb056942fbd6",
                         new ItemChange[]
                         {
-                            new ItemChange() { ChangeType = ItemChangeType.Delete | ItemChangeType.SourceRename, Item = new Item() { Path = "/index.html" }},
-                            new ItemChange() { ChangeType = ItemChangeType.Edit | ItemChangeType.Rename, Item = new Item() { Path = "/index3.html" }}
+                            new ItemChange(ItemChangeType.Delete | ItemChangeType.SourceRename, new Item("/index.html")),
+                            new ItemChange(ItemChangeType.Edit | ItemChangeType.Rename, new Item("/index3.html"))
                         }
                     },
                     {
                         "b6f447775f71a092854a2555eea084bd6d19958e",
                         new ItemChange[]
                         {
-                            new ItemChange() { ChangeType = ItemChangeType.Add, Item = new Item() { Path = "/favicon.ico" }}
+                            new ItemChange(ItemChangeType.Add, new Item("/favicon.ico"))
                         }
                     },
                     {
                         "fd29ca5fdf9e938c873b29fd1e074aea913b831b",
                         new ItemChange[]
                         {
-                            new ItemChange() { ChangeType = ItemChangeType.Add, Item = new Item() { Path = "/index4.ico" }}
+                            new ItemChange(ItemChangeType.Add, new Item("/index4.ico"))
                         }
                     }
                 };
@@ -337,39 +333,22 @@ namespace SourceControlSync.Domain.Tests
 
         private static FileContentMetadata CreateTextContentMetadataTestData()
         {
-            return new FileContentMetadata()
-            {
-                ContentType = "text/html",
-                IsBinary = false,
-                Encoding = Encoding.UTF8
-            };
+            return new FileContentMetadata("text/html", Encoding.UTF8);
         }
 
         private static FileContentMetadata CreateBinaryContentMetadataTestData()
         {
-            return new FileContentMetadata()
-            {
-                ContentType = "image/x-icon",
-                IsBinary = true
-            };
+            return new FileContentMetadata("image/x-icon");
         }
 
         private static ItemContent CreateTextContentTestData()
         {
-            return new ItemContent()
-            {
-                ContentType = ItemContentType.RawText,
-                Content = "Testing"
-            };
+            return new ItemContent(ItemContentType.RawText, "Testing");
         }
 
         private static ItemContent CreateBinaryContentTestData()
         {
-            return new ItemContent()
-            {
-                ContentType = ItemContentType.Base64Encoded,
-                Content = Convert.ToBase64String(Encoding.UTF8.GetBytes("Testing"))
-            };
+            return new ItemContent(ItemContentType.Base64Encoded, Convert.ToBase64String(Encoding.UTF8.GetBytes("Testing")));
         }
     }
 }

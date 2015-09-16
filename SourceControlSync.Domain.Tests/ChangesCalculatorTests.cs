@@ -4,6 +4,7 @@ using SourceControlSync.Domain.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 
 namespace SourceControlSync.Domain.Tests
 {
@@ -45,10 +46,8 @@ namespace SourceControlSync.Domain.Tests
 
             converter.CalculateItemChanges(commitAdd, commitEdit);
 
-            AssertCalculatedChanges(converter.ItemChanges, new ItemChange()
+            AssertCalculatedChanges(converter.ItemChanges, new ItemChange(ItemChangeType.Add, changeEdit.Item)
             {
-                ChangeType = ItemChangeType.Add,
-                Item = changeEdit.Item,
                 NewContent = changeEdit.NewContent
             });
         }
@@ -196,23 +195,20 @@ namespace SourceControlSync.Domain.Tests
 
         private ItemChange CreateChange(ItemChangeType changeType, string path)
         {
-            return new ItemChange()
+            var item = new Item(path)
             {
-                Item = new Item()
-                {
-                    ContentMetadata = new FileContentMetadata(),
-                    Path = path
-                },
-                ChangeType = changeType,
-                NewContent = new ItemContent()
+                ContentMetadata = new FileContentMetadata("text/plain", Encoding.UTF8)
+            };
+            return new ItemChange(changeType, item)
+            {
+                NewContent = new ItemContent(ItemContentType.RawText, "Testing")
             };
         }
 
         private static Commit CreateCommit(int minute, params ItemChange[] changes)
         {
-            return new Commit()
+            return new Commit(string.Empty, new UserDate(new DateTime(2015, 8, 16, 4, minute, 13)))
             {
-                Committer = new UserDate() { Date = new DateTime(2015, 8, 16, 4, minute, 13) },
                 Changes = changes
             };
         }

@@ -17,17 +17,18 @@ namespace SourceControlSync.DataVSO.Tests
         public void GetChanges()
         {
             var repo = CreateDownloadRequest();
-            var commit = new Commit() { CommitId = "5597f65ce55386a771e4bf6fa190b5a26c0f5ce5" };
 
-            repo.DownloadChangesInCommitAsync(
-                commit, Guid.Parse("0ad49569-db8b-4a8a-b5cc-f7ff009949c8"), 
-                CancellationToken.None).Wait();
+            var changes = repo.DownloadChangesInCommitAsync(
+                "5597f65ce55386a771e4bf6fa190b5a26c0f5ce5", 
+                Guid.Parse("0ad49569-db8b-4a8a-b5cc-f7ff009949c8"), 
+                CancellationToken.None
+                ).Result;
 
-            Assert.IsNotNull(commit.Changes);
-            Assert.AreEqual(1, commit.Changes.Count());
-            Assert.AreEqual(ItemChangeType.Add, commit.Changes.Single().ChangeType);
-            Assert.IsNotNull(commit.Changes.Single().Item);
-            Assert.AreEqual("/index.html", commit.Changes.Single().Item.Path);
+            Assert.IsNotNull(changes);
+            Assert.AreEqual(1, changes.Count());
+            Assert.AreEqual(ItemChangeType.Add, changes.Single().ChangeType);
+            Assert.IsNotNull(changes.Single().Item);
+            Assert.AreEqual("/index.html", changes.Single().Item.Path);
         }
 
         [TestMethod]
@@ -37,9 +38,10 @@ namespace SourceControlSync.DataVSO.Tests
             var repo = CreateDownloadRequest();
 
             var task = repo.DownloadChangesInCommitAsync(
-                new Commit() { CommitId = "5597f65ce55386a771e4bf6fa190b5a26c0f5ce5" },
+                "5597f65ce55386a771e4bf6fa190b5a26c0f5ce5",
                 Guid.Parse("0ad49569-db8b-4a8a-b5cc-f7ff009949c8"), 
-                new CancellationToken(true));
+                new CancellationToken(true)
+                );
 
             try
             {
@@ -55,12 +57,14 @@ namespace SourceControlSync.DataVSO.Tests
         public void GetTextItemAndBlob()
         {
             var repo = CreateDownloadRequest();
-            var change = new ItemChange() { Item = new Item() { Path = "/index.html" } };
+            var change = new ItemChange(ItemChangeType.Add, new Item("/index.html"));
 
-            repo.DownloadItemAndContentInCommitAsync(change,
-                new Commit() { CommitId = "5597f65ce55386a771e4bf6fa190b5a26c0f5ce5" },
+            repo.DownloadItemAndContentInCommitAsync(
+                change,
+                "5597f65ce55386a771e4bf6fa190b5a26c0f5ce5",
                 Guid.Parse("0ad49569-db8b-4a8a-b5cc-f7ff009949c8"),
-                CancellationToken.None).Wait();
+                CancellationToken.None
+                ).Wait();
 
             Assert.IsNotNull(change.Item.ContentMetadata);
             Assert.AreEqual("text/html", change.Item.ContentMetadata.ContentType);
@@ -75,12 +79,14 @@ namespace SourceControlSync.DataVSO.Tests
         public void GetBinaryItemAndBlob()
         {
             var repo = CreateDownloadRequest();
-            var change = new ItemChange() { Item = new Item() { Path = "/favicon.ico" } };
+            var change = new ItemChange(ItemChangeType.Add, new Item("/favicon.ico"));
 
-            repo.DownloadItemAndContentInCommitAsync(change,
-                new Commit() { CommitId = "b6f447775f71a092854a2555eea084bd6d19958e" },
+            repo.DownloadItemAndContentInCommitAsync(
+                change,
+                "b6f447775f71a092854a2555eea084bd6d19958e",
                 Guid.Parse("0ad49569-db8b-4a8a-b5cc-f7ff009949c8"),
-                CancellationToken.None).Wait();
+                CancellationToken.None
+                ).Wait();
 
             Assert.IsNotNull(change.Item.ContentMetadata);
             Assert.AreEqual("image/x-icon", change.Item.ContentMetadata.ContentType);
@@ -95,10 +101,11 @@ namespace SourceControlSync.DataVSO.Tests
         public void GetTextItemAndBlobWhenCanceled()
         {
             var repo = CreateDownloadRequest();
-            var change = new ItemChange() { Item = new Item() { Path = "/index.html" } };
+            var change = new ItemChange(ItemChangeType.Add, new Item("/index.html"));
 
-            var task = repo.DownloadItemAndContentInCommitAsync(change,
-                new Commit() { CommitId = "5597f65ce55386a771e4bf6fa190b5a26c0f5ce5" },
+            var task = repo.DownloadItemAndContentInCommitAsync(
+                change,
+                "5597f65ce55386a771e4bf6fa190b5a26c0f5ce5",
                 Guid.Parse("0ad49569-db8b-4a8a-b5cc-f7ff009949c8"),
                 new CancellationToken(true));
 

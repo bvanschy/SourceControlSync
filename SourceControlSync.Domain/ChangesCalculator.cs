@@ -119,10 +119,8 @@ namespace SourceControlSync.Domain
         {
             ValidateExistingChangeForEdit(existingChange);
 
-            var editedExistingItem = new ItemChange()
+            var editedExistingItem = new ItemChange(existingChange.ChangeType, newChange.Item)
             {
-                ChangeType = existingChange.ChangeType,
-                Item = newChange.Item,
                 NewContent = newChange.NewContent
             };
             return editedExistingItem;

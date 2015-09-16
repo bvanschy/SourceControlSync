@@ -7,8 +7,32 @@ namespace SourceControlSync.Domain.Models
 {
     public class Commit
     {
-        public IEnumerable<ItemChange> Changes { get; set; }
-        public string CommitId { get; set; }
-        public UserDate Committer { get; set; }
+        private IList<ItemChange> _changes;
+
+        public Commit(string commitId, UserDate committer)
+        {
+            CommitId = commitId;
+            Committer = committer;
+        }
+
+        public string CommitId { get; private set; }
+
+        public UserDate Committer { get; private set; }
+
+        public IEnumerable<ItemChange> Changes 
+        {
+            get { return _changes; }
+            set 
+            {
+                if(_changes != null)
+                {
+                    throw new InvalidOperationException("Changes is immutable");
+                }
+                if (value != null)
+                {
+                    _changes = value.ToList();
+                }
+            }
+        }
     }
 }

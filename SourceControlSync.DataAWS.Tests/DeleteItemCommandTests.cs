@@ -55,11 +55,7 @@ namespace SourceControlSync.DataAWS.Tests
 
         private ItemChange CreateItemChange()
         {
-            return new ItemChange()
-            {
-                ChangeType = ItemChangeType.Delete,
-                Item = new Item() { Path = "test/test.txt" }
-            };
+            return new ItemChange(ItemChangeType.Delete, new Item("test/test.txt"));
         }
 
         private IItemCommand CreateDeleteCommand(ItemChange itemChange)
