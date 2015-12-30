@@ -8,6 +8,7 @@ namespace SourceControlSync.DataAWS
         public const string PROPERTY_REGIONSYSTEMNAME = "RegionSystemName";
         public const string PROPERTY_ACCESSKEYID = "AccessKeyId";
         public const string PROPERTY_SECRETACCESSKEY = "SecretAccessKey";
+        public const string PROPERTY_PATH = "Path";
 
         public AWSS3ConnectionStringBuilder(string connectionString)
         {
@@ -49,6 +50,27 @@ namespace SourceControlSync.DataAWS
             {
                 SetValue(PROPERTY_ACCESSKEYID, value.AccessKeyId);
                 SetValue(PROPERTY_SECRETACCESSKEY, value.SecretAccessKey);
+            }
+        }
+
+        public string Path
+        {
+            get
+            {
+                var path = GetValue(PROPERTY_PATH);
+                if (string.IsNullOrWhiteSpace(path))
+                {
+                    path = string.Empty;
+                }
+                else if (!path.EndsWith("/"))
+                {
+                    path += "/";
+                }
+                return path;
+            }
+            set
+            {
+                SetValue(PROPERTY_PATH, value);
             }
         }
     }

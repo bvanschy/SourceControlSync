@@ -58,6 +58,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="DeleteItemCommandTests.cs" />
     <Compile Include="ExecutedCommandsTests.cs" />
+    <Compile Include="AWSS3ConnectionStringBuilderTests.cs" />
     <Compile Include="UploadItemCommandTests.cs" />
   </ItemGroup>
   <ItemGroup>

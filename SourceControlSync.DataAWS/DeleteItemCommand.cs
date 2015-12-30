@@ -19,9 +19,9 @@ namespace SourceControlSync.DataAWS
             _itemChange = itemChange;
         }
 
-        public async Task ExecuteOnDestinationAsync(AmazonS3Client s3Client, string bucketName, CancellationToken token)
+        public async Task ExecuteOnDestinationAsync(AmazonS3Client s3Client, string bucketName, string path, CancellationToken token)
         {
-            var response = await DeleteItemAsync(s3Client, bucketName, token);
+            var response = await DeleteItemAsync(s3Client, bucketName, path, token);
 
             if (response.HttpStatusCode != HttpStatusCode.NoContent)
             {
@@ -29,12 +29,12 @@ namespace SourceControlSync.DataAWS
             }
         }
 
-        private async Task<DeleteObjectResponse> DeleteItemAsync(AmazonS3Client s3Client, string bucketName, CancellationToken token)
+        private async Task<DeleteObjectResponse> DeleteItemAsync(AmazonS3Client s3Client, string bucketName, string path, CancellationToken token)
         {
             var request = new DeleteObjectRequest()
             {
                 BucketName = bucketName,
-                Key = _itemChange.Item.Path
+                Key = path + _itemChange.Item.Path
             };
             return await s3Client.DeleteObjectAsync(request, token);
         }

@@ -19,9 +19,9 @@ namespace SourceControlSync.DataAWS
             _itemChange = itemChange;
         }
 
-        public async Task ExecuteOnDestinationAsync(AmazonS3Client s3Client, string bucketName, CancellationToken token)
+        public async Task ExecuteOnDestinationAsync(AmazonS3Client s3Client, string bucketName, string path, CancellationToken token)
         {
-            var response = await UploadItemAsync(s3Client, bucketName, token);
+            var response = await UploadItemAsync(s3Client, bucketName, path, token);
 
             if (response.HttpStatusCode != HttpStatusCode.OK)
             {
@@ -29,14 +29,14 @@ namespace SourceControlSync.DataAWS
             }
         }
 
-        private async Task<PutObjectResponse> UploadItemAsync(AmazonS3Client s3Client, string bucketName, CancellationToken token)
+        private async Task<PutObjectResponse> UploadItemAsync(AmazonS3Client s3Client, string bucketName, string path, CancellationToken token)
         {
             using (var contentStream = _itemChange.CreateContentStream())
             {
                 var request = new PutObjectRequest()
                 {
                     BucketName = bucketName,
-                    Key = _itemChange.Item.Path,
+                    Key = path + _itemChange.Item.Path,
                     ContentType = _itemChange.Item.ContentMetadata.ContentType,
                     InputStream = contentStream
                 };

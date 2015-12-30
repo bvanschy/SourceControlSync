@@ -13,6 +13,7 @@ namespace SourceControlSync.DataAWS
     {
         private readonly Bucket _bucket;
         private readonly Credentials _credentials;
+        private readonly string _path;
         private readonly List<ItemChange> _itemChanges = new List<ItemChange>();
         private readonly IList<IItemCommand> _executedCommands = new List<IItemCommand>();
 
@@ -21,6 +22,7 @@ namespace SourceControlSync.DataAWS
             var connectionStringBuilder = new AWSS3ConnectionStringBuilder(connectionString);
             _bucket = connectionStringBuilder.Bucket;
             _credentials = connectionStringBuilder.Credentials;
+            _path = connectionStringBuilder.Path;
         }
 
         public IExecutedCommands ExecutedCommands
@@ -42,7 +44,7 @@ namespace SourceControlSync.DataAWS
             {
                 foreach (var command in commands)
                 {
-                    await command.ExecuteOnDestinationAsync(s3Client, _bucket.BucketName, token);
+                    await command.ExecuteOnDestinationAsync(s3Client, _bucket.BucketName, _path, token);
                     _executedCommands.Add(command);
                 }
             }

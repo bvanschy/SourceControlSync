@@ -9,7 +9,7 @@ namespace SourceControlSync.DataAWS
 {
     public interface IItemCommand
     {
-        Task ExecuteOnDestinationAsync(AmazonS3Client s3Client, string bucketName, CancellationToken token);
+        Task ExecuteOnDestinationAsync(AmazonS3Client s3Client, string bucketName, string path, CancellationToken token);
 
         IEnumerable<string> GetDescription(string format);
     }

@@ -10,7 +10,7 @@ namespace SourceControlSync.DataAWS
 {
     public class NullItemCommand : IItemCommand
     {
-        public Task ExecuteOnDestinationAsync(AmazonS3Client s3Client, string bucketName, CancellationToken token)
+        public Task ExecuteOnDestinationAsync(AmazonS3Client s3Client, string bucketName, string path, CancellationToken token)
         {
             return Task.FromResult(0);
         }

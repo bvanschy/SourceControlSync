@@ -25,7 +25,7 @@ namespace SourceControlSync.DataAWS.Tests
             var command = CreateDeleteCommand(itemChange);
             var s3Client = CreateS3Client();
 
-            command.ExecuteOnDestinationAsync(s3Client, GetBucketName(), CancellationToken.None).Wait();
+            command.ExecuteOnDestinationAsync(s3Client, GetBucketName(), string.Empty, CancellationToken.None).Wait();
         }
 
         [TestMethod]
