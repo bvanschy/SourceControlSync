@@ -57,10 +57,13 @@ namespace SourceControlSync.DataVSO
                 cancellationToken: token
                 );
 
-            var content = await _httpClient.GetBlobContentAsync(repositoryId, item.ObjectId, cancellationToken: token);
-
             change.Item.ContentMetadata = item.ContentMetadata.ToSync();
-            await change.SetNewContentAsync(content, token);
+
+            if (!item.IsFolder)
+            {
+                var content = await _httpClient.GetBlobContentAsync(repositoryId, item.ObjectId, cancellationToken: token);
+                await change.SetNewContentAsync(content, token);
+            }
         }
 
         private void CreateHttpClient()

@@ -21,6 +21,9 @@
 /SourceControlSync.WebApi.Tests/bin
 /SourceControlSync.WebApi.Tests/obj
 /SourceControlSync.WebApi.Tests/FakesAssemblies
+/EndToEndTests/bin
+/EndToEndTests/obj
+/local.runsettings
 /packages
 *.user
 *.suo

@@ -119,6 +119,40 @@ namespace SourceControlSync.DataVSO.Tests
             }
         }
 
+        [TestMethod]
+        public void GetCommitChangesWithSubfolder()
+        {
+            var repo = CreateDownloadRequest();
+
+            var changes = repo.DownloadChangesInCommitAsync(
+                "1f8734c1b02957390f27e79638b2bd96374b00a2",
+                Guid.Parse("0ad49569-db8b-4a8a-b5cc-f7ff009949c8"),
+                CancellationToken.None
+                ).Result;
+
+            Assert.IsNotNull(changes);
+            Assert.AreEqual(2, changes.Count());
+            Assert.IsNotNull(changes.FirstOrDefault(c => c.Item.IsFolder));
+            Assert.IsNotNull(changes.FirstOrDefault(c => !c.Item.IsFolder));
+        }
+
+        [TestMethod]
+        public void GetSubfolder()
+        {
+            var repo = CreateDownloadRequest();
+            var change = new ItemChange(ItemChangeType.Add, new Item("/subfolder"));
+
+            repo.DownloadItemAndContentInCommitAsync(
+                change,
+                "1f8734c1b02957390f27e79638b2bd96374b00a2",
+                Guid.Parse("0ad49569-db8b-4a8a-b5cc-f7ff009949c8"),
+                CancellationToken.None
+                ).Wait();
+
+            Assert.IsNotNull(change.Item.ContentMetadata);
+            Assert.IsNull(change.NewContent);
+        }
+
         private IDownloadRequest CreateDownloadRequest()
         {
             var baseUrl = TestContext.Properties["VSOBaseUrl"] as string;

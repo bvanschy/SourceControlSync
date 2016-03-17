@@ -7,6 +7,7 @@ namespace SourceControlSync.Domain.Models
 {
     public class Item
     {
+        private bool _isFolder;
         private FileContentMetadata _contentMetadata;
 
         public Item(string path)
@@ -15,6 +16,12 @@ namespace SourceControlSync.Domain.Models
         }
 
         public string Path { get; private set; }
+
+        public bool IsFolder
+        {
+            get { return _isFolder; }
+            set { _isFolder = value; }
+        }
 
         public FileContentMetadata ContentMetadata 
         {

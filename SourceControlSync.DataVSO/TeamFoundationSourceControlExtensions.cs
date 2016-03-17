@@ -73,7 +73,10 @@ namespace SourceControlSync.DataVSO
 
         public static Item ToSync(this Microsoft.TeamFoundation.SourceControl.WebApi.GitItem item)
         {
-            return new Item(item.Path);
+            return new Item(item.Path)
+            {
+                IsFolder = item.IsFolder
+            };
         }
 
         public static FileContentMetadata ToSync(this Microsoft.TeamFoundation.SourceControl.WebApi.FileContentMetadata metadata)
