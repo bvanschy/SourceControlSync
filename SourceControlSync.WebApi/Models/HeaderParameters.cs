@@ -6,6 +6,9 @@ using System.Web;
 
 namespace SourceControlSync.WebApi.Models
 {
+    /// <summary>
+    /// Helper class for verifying and retrieving HTTP header values
+    /// </summary>
     public class HeaderParameters
     {
         private readonly HttpRequestHeaders _headers;

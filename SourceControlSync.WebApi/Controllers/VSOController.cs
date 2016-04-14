@@ -13,6 +13,9 @@ using System.Web.Http;
 
 namespace SourceControlSync.WebApi.Controllers
 {
+    /// <summary>
+    /// Handles Git push messages from Visual Studio Team Services
+    /// </summary>
     public class VSOController : ApiController
     {
         public const string HEADER_ROOT = "Sync-Root";
@@ -44,6 +47,12 @@ namespace SourceControlSync.WebApi.Controllers
             _errorReport = errorReport;
         }
 
+        /// <summary>
+        /// Processes a push message by copying files from Git to a destination repository.
+        /// Reports any errors and successfully copied files.
+        /// </summary>
+        /// <param name="data">The deserialized push message</param>
+        /// <returns></returns>
         public async Task<IHttpActionResult> PostAsync(VSOCodePushed data, CancellationToken token)
         {
             _parameters = new HeaderParameters(Request.Headers,
@@ -98,12 +107,14 @@ namespace SourceControlSync.WebApi.Controllers
             var push = _pushEvent.ToSync();
             string root = _parameters[HEADER_ROOT];
 
+            // Create the source repository client and perform the downloads
             var sourceConnectionString = _parameters[HEADER_SOURCE_CONNECTIONSTRING];
             var sourceRepository = _sourceRepositoryFactory.CreateSourceRepository(sourceConnectionString);
             await sourceRepository.DownloadChangesAsync(push, root, _token);
 
             _changesCalculator.CalculateItemChanges(push.Commits);
 
+            // Create the destination repository client and perform the uploads
             var destinationConnectionString = _parameters[HEADER_DESTINATION_CONNECTIONSTRING];
             var destinationRepository = _destinationRepositoryFactory.CreateDestinationRepository(destinationConnectionString);
             await destinationRepository.PushItemChangesAsync(_changesCalculator.ItemChanges, root);
@@ -111,6 +122,9 @@ namespace SourceControlSync.WebApi.Controllers
             return destinationRepository.ExecutedCommands;
         }
 
+        /// <summary>
+        /// Email a report of all the successful changes to the owner(s) of the Git repository
+        /// </summary>
         private async Task SendChangesReportAsync()
         {
             if (!_changesReport.HasMessage)
@@ -133,6 +147,9 @@ namespace SourceControlSync.WebApi.Controllers
             }
         }
 
+        /// <summary>
+        /// Email an error report to the system administrator
+        /// </summary>
         private async Task SendExceptionReportAsync()
         {
             if (!_errorReport.HasMessage)

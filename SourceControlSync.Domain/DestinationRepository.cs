@@ -6,6 +6,9 @@ using System.Threading.Tasks;
 
 namespace SourceControlSync.Domain
 {
+    /// <summary>
+    /// Generic destination repository client requiring a specific data context
+    /// </summary>
     public class DestinationRepository : IDestinationRepository
     {
         private readonly IDestinationContext _destinationContext;
@@ -38,6 +41,9 @@ namespace SourceControlSync.Domain
                    select CreateItemChangeInRoot(change);
         }
 
+        /// <summary>
+        /// Creates a changed item and removes the root path from the item's full path
+        /// </summary>
         private ItemChange CreateItemChangeInRoot(ItemChange change)
         {
             var item = new Item(change.Item.Path.Substring(_root.Length))

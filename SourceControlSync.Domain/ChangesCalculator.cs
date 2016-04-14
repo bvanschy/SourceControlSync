@@ -6,6 +6,10 @@ using System.Linq;
 
 namespace SourceControlSync.Domain
 {
+    /// <summary>
+    /// Minimizes the number of uploads necessary to synchronize the total list of commits.
+    /// e.g., Commit1: Add file1, Commit2: Delete file1 --> no changes necessary
+    /// </summary>
     public class ChangesCalculator : IChangesCalculator
     {
         private IEnumerable<Commit> _commits;

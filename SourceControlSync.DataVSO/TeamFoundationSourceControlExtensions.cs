@@ -7,6 +7,9 @@ using System.Threading.Tasks;
 
 namespace SourceControlSync.DataVSO
 {
+    /// <summary>
+    /// Extension methods to convert from Microsoft data objects to local models
+    /// </summary>
     public static class TeamFoundationSourceControlExtensions
     {
         public static IList<string> GetCommitterEmails(this IEnumerable<Microsoft.TeamFoundation.SourceControl.WebApi.GitCommitRef> commits)

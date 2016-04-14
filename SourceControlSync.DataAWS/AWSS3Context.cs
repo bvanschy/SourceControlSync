@@ -9,6 +9,9 @@ using System.Threading.Tasks;
 
 namespace SourceControlSync.DataAWS
 {
+    /// <summary>
+    /// File changes uploader for Amazon S3 blob storage
+    /// </summary>
     public class AWSS3Context : IDestinationContext
     {
         private readonly Bucket _bucket;

@@ -10,6 +10,9 @@ using System.Threading.Tasks;
 
 namespace SourceControlSync.DataVSO
 {
+    /// <summary>
+    /// File changes downloader for Visual Studio Team Services Git repository
+    /// </summary>
     public class DownloadRequest : IDownloadRequest
     {
         private readonly Uri _baseUrl;

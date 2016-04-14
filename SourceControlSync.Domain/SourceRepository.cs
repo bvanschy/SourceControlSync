@@ -5,6 +5,9 @@ using System.Threading.Tasks;
 
 namespace SourceControlSync.Domain
 {
+    /// <summary>
+    /// Generic source repository client requiring a specific source control downloader
+    /// </summary>
     public class SourceRepository : ISourceRepository
     {
         private readonly IDownloadRequest _downloadRequest;
