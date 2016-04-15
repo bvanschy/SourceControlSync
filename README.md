@@ -1,5 +1,5 @@
 # SourceControlSync
-An ASP.NET Web API service that accepts Web Hooks from Visual Studio Online source control and pushes changes to Amazon S3
+An ASP.NET Web API web service that accepts Web Hooks from Visual Studio Team Services Git source control and synchronizes changes with Amazon S3
 
 When files are committed to Git source control they are automatically copied to (or removed from) Amazon S3 blob storage.
 
